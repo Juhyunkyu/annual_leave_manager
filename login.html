@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>연차관리 시스템 - 로그인</title>
+  
+  <!-- 🎨 CSS 스타일 -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .login-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      animation: slideUp 0.6s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .logo h1 {
+      color: #333;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    
+    .logo p {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      color: #333;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e1e5e9;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      background-color: #f8f9fa;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      background-color: white;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
+    
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-login:active {
+      transform: translateY(0);
+    }
+    
+    .btn-login:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .btn-admin {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-admin:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+    }
+    
+    .btn-admin:active {
+      transform: translateY(0);
+    }
+    
+    .btn-admin:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .admin-mode {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    }
+    
+    .admin-mode .form-group label {
+      color: #d63031;
+    }
+    
+    .admin-mode .form-group input:focus {
+      border-color: #ff6b6b;
+      box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+    }
+    
+    .error-message {
+      background-color: #fee;
+      color: #c33;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 4px solid #c33;
+      margin-bottom: 20px;
+      display: none;
+      animation: shake 0.5s ease-in-out;
+    }
+    
+    .success-message {
+      background-color: #efe;
+      color: #3c3;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 4px solid #3c3;
+      margin-bottom: 20px;
+      display: none;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      color: #666;
+      margin-top: 10px;
+    }
+    
+    .loading::after {
+      content: '...';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+    
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60% { content: '...'; }
+      80%, 100% { content: ''; }
+    }
+    
+    .help-text {
+      text-align: center;
+      color: #666;
+      font-size: 13px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    
+    .help-text strong {
+      color: #333;
+    }
+    
+    /* 📱 모바일 반응형 */
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 30px 20px;
+        margin: 10px;
+      }
+      
+      .logo h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-container">
+    <!-- 🏷️ 로고 및 제목 -->
+    <div class="logo">
+      <h1>📋 연차관리 시스템</h1>
+      <p>로그인하여 시스템에 접속하세요</p>
+    </div>
+    
+    <!-- ⚠️ 메시지 영역 -->
+    <div id="errorMessage" class="error-message"></div>
+    <div id="successMessage" class="success-message"></div>
+    
+    <!-- 📝 로그인 폼 -->
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label for="email">📧 이메일</label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email" 
+          required 
+          autocomplete="email"
+          placeholder="직원 이메일을 입력하세요"
+          value=""
+        >
+      </div>
+      
+      <div class="form-group">
+        <label for="password">🔑 비밀번호</label>
+        <input 
+          type="password" 
+          id="password" 
+          name="password" 
+          required 
+          autocomplete="current-password"
+          placeholder="비밀번호를 입력하세요"
+          value=""
+        >
+      </div>
+      
+      <button type="submit" id="loginBtn" class="btn-login">
+        🚀 직원 로그인
+      </button>
+      
+      <div style="text-align: center; margin: 1rem 0;">
+        <span style="color: #666; font-size: 14px;">또는</span>
+      </div>
+      
+      <button type="button" id="adminModeBtn" class="btn-admin" onclick="toggleAdminMode()">
+        🔐 관리자 모드
+      </button>
+      
+      <div id="loading" class="loading">로그인 중입니다</div>
+    </form>
+    
+    <!-- 💡 도움말 -->
+    <div class="help-text">
+      <strong>최초 로그인:</strong> temp123<br>
+      로그인 후 비밀번호를 변경해주세요
+    </div>
+  </div>
+
+  <!-- 🔧 JavaScript -->
+  <script>
+    // 전역 변수
+    let isAdminMode = false;
+    
+    /**
+     * 🔐 관리자 모드 토글
+     */
+    function toggleAdminMode() {
+      isAdminMode = !isAdminMode;
+      const container = document.querySelector('.login-container');
+      const adminBtn = document.getElementById('adminModeBtn');
+      const loginBtn = document.getElementById('loginBtn');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      
+      if (isAdminMode) {
+        // 관리자 모드 활성화
+        container.classList.add('admin-mode');
+        adminBtn.textContent = '👤 직원 모드로 전환';
+        adminBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        loginBtn.textContent = '🔐 관리자 로그인';
+        loginBtn.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)';
+        
+        // 관리자 기본값 설정
+        emailInput.value = 'admin@company.com';
+        emailInput.placeholder = 'admin@company.com';
+        passwordInput.placeholder = '관리자 비밀번호를 입력하세요';
+        
+        showSuccess('관리자 모드로 전환되었습니다.');
+      } else {
+        // 직원 모드 활성화
+        container.classList.remove('admin-mode');
+        adminBtn.textContent = '🔐 관리자 모드';
+        adminBtn.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)';
+        loginBtn.textContent = '🚀 직원 로그인';
+        loginBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        
+        // 직원 기본값 설정
+        emailInput.value = '';
+        emailInput.placeholder = '직원 이메일을 입력하세요';
+        passwordInput.placeholder = '비밀번호를 입력하세요';
+        
+        showSuccess('직원 모드로 전환되었습니다.');
+      }
+      
+      // 메시지 자동 숨김
+      setTimeout(hideMessages, 2000);
+    }
+    
+    /**
+     * 🔐 로그인 폼 제출 처리
+     */
+    async function handleLogin(event) {
+      event.preventDefault();
+      
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const loginBtn = document.getElementById('loginBtn');
+      const loading = document.getElementById('loading');
+      
+      // 입력값 검증
+      if (!email || !password) {
+        showError('이메일과 비밀번호를 입력해주세요.');
+        return;
+      }
+      
+      // UI 상태 변경
+      loginBtn.disabled = true;
+      loginBtn.textContent = isAdminMode ? '관리자 로그인 중...' : '직원 로그인 중...';
+      loading.style.display = 'block';
+      hideMessages();
+      
+      try {
+        // 관리자/직원 모드에 따라 다른 함수 호출
+        const loginFunction = isAdminMode ? 'doAdminLogin' : 'doLogin';
+        const result = await callServerFunction(loginFunction, email, password);
+        
+        if (result.success) {
+          showSuccess('로그인 성공! 메인 화면을 불러오는 중...');
+          
+          // 메인 화면 HTML을 서버에서 가져와서 교체
+          try {
+            const mainResult = await callServerFunction('getMainAppAfterLogin');
+            
+            if (mainResult && mainResult.success && mainResult.html) {
+              // 현재 페이지 전체를 메인 앱 HTML로 교체
+              document.open();
+              document.write(mainResult.html);
+              document.close();
+            } else {
+              // HTML 가져오기 실패 시 페이지 새로고침으로 폴백
+              setTimeout(() => {
+                const baseUrl = window.location.href.split('?')[0];
+                window.location.href = baseUrl + '?t=' + new Date().getTime();
+              }, 500);
+            }
+          } catch (error) {
+            console.error('❌ 메인 화면 로드 오류:', error);
+            // 오류 시 페이지 새로고침으로 폴백
+            setTimeout(() => {
+              const baseUrl = window.location.href.split('?')[0];
+              window.location.href = baseUrl + '?t=' + new Date().getTime();
+            }, 500);
+          }
+        } else {
+          showError(result.message || '로그인에 실패했습니다.');
+        }
+        
+      } catch (error) {
+        console.error('로그인 오류:', error);
+        showError('로그인 처리 중 오류가 발생했습니다.');
+      } finally {
+        // UI 상태 복원
+        loginBtn.disabled = false;
+        loginBtn.textContent = isAdminMode ? '🔐 관리자 로그인' : '🚀 직원 로그인';
+        loading.style.display = 'none';
+      }
+    }
+    
+    /**
+     * 📞 서버 함수 호출 헬퍼
+     */
+    function callServerFunction(functionName, ...args) {
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          [functionName](...args);
+      });
+    }
+    
+    /**
+     * ❌ 오류 메시지 표시
+     */
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      
+      // 자동 숨김 (5초 후)
+      setTimeout(() => {
+        errorDiv.style.display = 'none';
+      }, 5000);
+    }
+    
+    /**
+     * ✅ 성공 메시지 표시
+     */
+    function showSuccess(message) {
+      const successDiv = document.getElementById('successMessage');
+      successDiv.textContent = message;
+      successDiv.style.display = 'block';
+    }
+    
+    /**
+     * 🙈 모든 메시지 숨김
+     */
+    function hideMessages() {
+      document.getElementById('errorMessage').style.display = 'none';
+      document.getElementById('successMessage').style.display = 'none';
+    }
+    
+    /**
+     * ⌨️ Enter 키 처리
+     */
+    document.addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+      }
+    });
+    
+    /**
+     * 🎯 페이지 로드 시 이메일 입력란에 포커스
+     */
+    window.addEventListener('load', function() {
+      document.getElementById('email').focus();
+    });
+  </script>
+</body>
+</html> 

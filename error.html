@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오류 - 연차관리 시스템</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: white;
+    }
+    
+    .error-container {
+      text-align: center;
+      max-width: 500px;
+    }
+    
+    .error-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+    
+    .error-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    
+    .error-message {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      opacity: 0.9;
+    }
+    
+    .btn-home {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.3);
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-home:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.5);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="error-container">
+    <div class="error-icon">⚠️</div>
+    <h1 class="error-title">시스템 오류</h1>
+    <p class="error-message"><?= errorMessage ?></p>
+    <a href="javascript:window.location.reload()" class="btn-home">
+      🔄 다시 시도
+    </a>
+  </div>
+</body>
+</html> 
