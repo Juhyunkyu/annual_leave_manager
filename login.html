@@ -319,16 +319,14 @@
         adminBtn.textContent = '👤 직원 모드로 전환';
         adminBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         loginBtn.textContent = '🔐 관리자 로그인';
-        // 👑 관리자 로그인 버튼을 골드 색상으로 변경 (눈에 잘 띄게)
-        loginBtn.style.background = 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)';
-        loginBtn.style.boxShadow = '0 4px 15px rgba(243, 156, 18, 0.4)';
+        loginBtn.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)';
         
         // 관리자 기본값 설정
         emailInput.value = 'admin@company.com';
         emailInput.placeholder = 'admin@company.com';
         passwordInput.placeholder = '관리자 비밀번호를 입력하세요';
         
-        showSuccess('👑 관리자 모드로 전환되었습니다.');
+        showSuccess('관리자 모드로 전환되었습니다.');
       } else {
         // 직원 모드 활성화
         container.classList.remove('admin-mode');
@@ -336,14 +334,13 @@
         adminBtn.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)';
         loginBtn.textContent = '🚀 직원 로그인';
         loginBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        loginBtn.style.boxShadow = '0 8px 20px rgba(102, 126, 234, 0.3)';
         
         // 직원 기본값 설정
         emailInput.value = '';
         emailInput.placeholder = '직원 이메일을 입력하세요';
         passwordInput.placeholder = '비밀번호를 입력하세요';
         
-        showSuccess('👤 직원 모드로 전환되었습니다.');
+        showSuccess('직원 모드로 전환되었습니다.');
       }
       
       // 메시지 자동 숨김
@@ -474,28 +471,10 @@
     });
     
     /**
-     * 🎯 페이지 로드 시 초기화
+     * 🎯 페이지 로드 시 이메일 입력란에 포커스
      */
     window.addEventListener('load', function() {
-      // 이메일 입력란에 포커스
       document.getElementById('email').focus();
-      
-      // 서버에서 전달된 만료 메시지 확인
-      if (typeof expiredMessage !== 'undefined' && expiredMessage) {
-        showError(expiredMessage);
-      } else {
-        // URL 파라미터에서 메시지 확인
-        const urlParams = new URLSearchParams(window.location.search);
-        const message = urlParams.get('message');
-        
-        if (message) {
-          showError(decodeURIComponent(message));
-        } else if (urlParams.get('logout') === 'true') {
-          showSuccess('로그아웃되었습니다. 다시 로그인해주세요.');
-          // 메시지 자동 숨김 
-          setTimeout(hideMessages, 3000);
-        }
-      }
     });
   </script>
 </body>
