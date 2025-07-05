@@ -425,6 +425,81 @@
       .form-grid {
         grid-template-columns: 1fr;
       }
+      
+      /* 직원 관리 모바일 최적화 */
+      .section-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+      }
+      
+      .search-controls {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      
+      .search-input {
+        width: 100%;
+      }
+      
+      .btn-reset {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      /* 모바일에서 테이블 스크롤 */
+      .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      .employee-table {
+        min-width: 650px;
+      }
+      
+      .employee-table .btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+        min-width: 50px;
+      }
+      
+      .employee-table .btn-text {
+        display: none;
+      }
+      
+      .employee-table .btn-icon {
+        font-size: 1rem;
+      }
+      
+      .info-banner {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .info-icon {
+        align-self: center;
+        margin-top: 0;
+      }
+      
+      .btn-large {
+        width: 100%;
+        padding: 1rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .search-input {
+        font-size: 16px; /* iOS에서 줌 방지 */
+      }
+      
+      .employee-table th,
+      .employee-table td {
+        padding: 0.75rem 0.5rem;
+      }
+      
+      .col-email {
+        min-width: 150px;
+      }
     }
     
     /* 💬 메시지 */
@@ -451,6 +526,266 @@
       background: #d1ecf1;
       color: #0c5460;
       border-color: #17a2b8;
+    }
+    
+    /* 👥 직원 관리 페이지 전용 스타일 */
+    .employee-form-section,
+    .employee-list-section {
+      margin-bottom: 2.5rem;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e9ecef;
+    }
+    
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #333;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    /* 정보 배너 스타일 */
+    .info-banner {
+      background: linear-gradient(135deg, #e8f4fd 0%, #f1f8ff 100%);
+      border: 1px solid #bee5eb;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .info-icon {
+      font-size: 1.5rem;
+      margin-top: 0.2rem;
+    }
+    
+    .info-content {
+      flex: 1;
+      color: #0c5460;
+    }
+    
+    .info-content strong {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+    }
+    
+    .info-list {
+      margin: 0;
+      padding-left: 1.2rem;
+      list-style: none;
+    }
+    
+    .info-list li {
+      position: relative;
+      margin-bottom: 0.3rem;
+      padding-left: 0.5rem;
+    }
+    
+    .info-list li::before {
+      content: '•';
+      position: absolute;
+      left: -0.8rem;
+      color: #667eea;
+      font-weight: bold;
+    }
+    
+    .info-list code {
+      background: rgba(255, 255, 255, 0.8);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      color: #e74c3c;
+    }
+    
+    /* 폼 액션 버튼 영역 */
+    .form-actions {
+      text-align: center;
+      margin-top: 2.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid #e9ecef;
+    }
+    
+    .btn-large {
+      padding: 1rem 2.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7rem;
+      min-width: 180px;
+      justify-content: center;
+    }
+    
+    .btn-icon {
+      font-size: 1.2rem;
+    }
+    
+    .btn-text {
+      font-weight: 600;
+    }
+    
+    /* 검색 컨트롤 */
+    .search-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .search-input-wrapper {
+      position: relative;
+    }
+    
+    .search-input {
+      padding: 0.75rem 1rem;
+      border: 2px solid #e1e5e9;
+      border-radius: 8px;
+      width: 280px;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      background-color: #f8f9fa;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: #667eea;
+      background-color: white;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn-reset {
+      padding: 0.75rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 100px;
+      justify-content: center;
+    }
+    
+    /* 직원 테이블 개선 */
+    .employee-table {
+      margin: 0;
+    }
+    
+    .employee-table th {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      color: #495057;
+      font-weight: 700;
+      text-align: center;
+      vertical-align: middle;
+      padding: 1rem 0.75rem;
+      border-bottom: 2px solid #dee2e6;
+      white-space: nowrap;
+    }
+    
+    .employee-table td {
+      text-align: center;
+      vertical-align: middle;
+      padding: 1rem 0.75rem;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .employee-table tbody tr {
+      transition: all 0.2s ease;
+    }
+    
+    .employee-table tbody tr:hover {
+      background-color: #f8f9fa;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* 테이블 컬럼 너비 조정 */
+    .col-empid {
+      width: 10%;
+      min-width: 80px;
+    }
+    
+    .col-name {
+      width: 15%;
+      min-width: 100px;
+    }
+    
+    .col-email {
+      width: 25%;
+      min-width: 200px;
+      text-align: left !important;
+      padding-left: 1rem !important;
+    }
+    
+    .col-dept {
+      width: 15%;
+      min-width: 100px;
+    }
+    
+    .col-position {
+      width: 15%;
+      min-width: 100px;
+    }
+    
+    .col-actions {
+      width: 20%;
+      min-width: 160px;
+    }
+    
+    /* 테이블 액션 버튼 */
+    .employee-table .btn {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin: 0 0.2rem;
+      min-width: 60px;
+    }
+    
+    /* 로딩 셀 */
+    .loading-cell {
+      text-align: center !important;
+      color: #6c757d;
+      font-style: italic;
+      padding: 2rem !important;
+      background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    
+    /* 빈 메시지 셀 */
+    .empty-message {
+      text-align: center !important;
+      color: #6c757d;
+      font-style: italic;
+      padding: 2.5rem !important;
+      background: #f8f9fa;
+      font-size: 1.1rem;
+    }
+    
+    .search-empty-message {
+      text-align: center !important;
+      color: #856404;
+      font-style: italic;
+      padding: 2.5rem !important;
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      font-size: 1.1rem;
     }
     
     /* 🔄 로딩 */
@@ -509,6 +844,336 @@
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+    
+    /* 🔧 직원 수정 모달 스타일 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .modal-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e9ecef;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #333;
+      margin: 0;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    
+    .modal-close:hover {
+      background: #f8f9fa;
+      color: #dc3545;
+    }
+    
+    .modal-body {
+      padding: 1.5rem;
+    }
+    
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #e9ecef;
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .form-col {
+      flex: 1;
+    }
+    
+    .form-group-modal {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group-modal label {
+      display: block;
+      color: #333;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .form-group-modal input,
+    .form-group-modal select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-group-modal input:focus,
+    .form-group-modal select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-group-modal input[readonly] {
+      background-color: #f8f9fa;
+      color: #6c757d;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+    
+    .checkbox-group label {
+      color: #856404;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .btn-modal {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-modal-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-modal-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-modal-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-modal-secondary:hover {
+      background: #5a6268;
+    }
+    
+    .btn-modal:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-50px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* 📄 페이지네이션 스타일 */
+    .pagination-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
+    }
+    
+    .pagination-info {
+      color: #6c757d;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .pagination-btn {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #dee2e6;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.85rem;
+      font-weight: 500;
+      min-width: 40px;
+      text-align: center;
+      text-decoration: none;
+    }
+    
+    .pagination-btn:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
+    }
+    
+    .pagination-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: #667eea;
+    }
+    
+    .pagination-btn:disabled {
+      background: #f8f9fa;
+      color: #6c757d;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    
+    .pagination-btn:disabled:hover {
+      background: #f8f9fa;
+      border-color: #dee2e6;
+    }
+    
+    .pagination-select {
+      padding: 0.4rem 0.6rem;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-left: 0.5rem;
+    }
+    
+    .pagination-select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* 페이지네이션 설정 */
+    .pagination-settings {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #6c757d;
+    }
+    
+    /* 모바일 반응형 */
+    @media (max-width: 768px) {
+      .modal-container {
+        width: 95%;
+        max-height: 95vh;
+        margin: 1rem;
+      }
+      
+      .modal-header,
+      .modal-body,
+      .modal-footer {
+        padding: 1rem;
+      }
+      
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+      
+      .modal-footer {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      .btn-modal {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      /* 페이지네이션 모바일 최적화 */
+      .pagination-container {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0.75rem;
+      }
+      
+      .pagination-info {
+        order: 2;
+        text-align: center;
+      }
+      
+      .pagination-controls {
+        order: 1;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .pagination-settings {
+        order: 3;
+        justify-content: center;
+      }
+      
+      .pagination-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+        min-width: 35px;
+      }
     }
   </style>
 </head>
@@ -977,95 +1642,149 @@
         <p class="page-subtitle">직원 정보를 추가, 수정, 삭제할 수 있습니다.</p>
       </div>
       
-      <div class="form-container">
-        <h3>📝 직원 추가</h3>
-        <form id="addEmployeeForm" onsubmit="addEmployee(event)">
-          <div style="background: #e8f4fd; border: 1px solid #bee5eb; border-radius: 8px; padding: 12px; margin-bottom: 20px; color: #0c5460;">
-            <strong>📋 자동 생성 정보</strong><br>
-            • 사번: 시스템에서 자동으로 생성됩니다 (기존 최대 사번 + 1)<br>
-            • 초기 비밀번호: <code>temp123</code> (첫 로그인 시 변경 필요)
-          </div>
-          
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="empName">이름 *</label>
-              <input type="text" id="empName" required placeholder="홍길동">
-            </div>
-            
-            <div class="form-group">
-              <label for="empEmail">이메일 *</label>
-              <input type="email" id="empEmail" required placeholder="hong@company.com">
-            </div>
-            
-            <div class="form-group">
-              <label for="empPhone">전화번호</label>
-              <input type="tel" id="empPhone" placeholder="010-1234-5678">
-            </div>
-            
-            <div class="form-group">
-              <label for="empDept">부서</label>
-              <select id="empDept" required>
-                <option value="">선택하세요</option>
-                <option value="10">개발팀</option>
-                <option value="20">영업팀</option>
-                <option value="30">인사팀</option>
-                <option value="40">총무팀</option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label for="empPosition">직급</label>
-              <input type="text" id="empPosition" placeholder="예: 대리">
+      <!-- 직원 추가 섹션 -->
+      <div class="employee-form-section">
+        <div class="section-header">
+          <h3 class="section-title">📝 직원 추가</h3>
+        </div>
+        
+        <div class="form-container">
+          <div class="info-banner">
+            <div class="info-icon">📋</div>
+            <div class="info-content">
+              <strong>자동 생성 정보</strong>
+              <ul class="info-list">
+                <li>사번: 시스템에서 자동으로 생성됩니다 (기존 최대 사번 + 1)</li>
+                <li>초기 비밀번호: <code>temp123</code> (첫 로그인 시 변경 필요)</li>
+              </ul>
             </div>
           </div>
           
-          <div style="text-align: center; margin-top: 2rem;">
-            <button type="submit" class="btn btn-primary">
-              👥 직원 추가
-            </button>
-          </div>
-        </form>
+          <form id="addEmployeeForm" onsubmit="addEmployee(event)">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="empName">이름 *</label>
+                <input type="text" id="empName" required placeholder="홍길동">
+              </div>
+              
+              <div class="form-group">
+                <label for="empEmail">이메일 *</label>
+                <input type="email" id="empEmail" required placeholder="hong@company.com">
+              </div>
+              
+              <div class="form-group">
+                <label for="empPhone">전화번호</label>
+                <input type="tel" id="empPhone" placeholder="010-1234-5678">
+              </div>
+              
+              <div class="form-group">
+                <label for="empDept">부서 *</label>
+                <select id="empDept" required>
+                  <option value="">선택하세요</option>
+                  <option value="10">개발팀</option>
+                  <option value="20">영업팀</option>
+                  <option value="30">인사팀</option>
+                  <option value="40">총무팀</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="empPosition">직급</label>
+                <input type="text" id="empPosition" placeholder="예: 대리">
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary btn-large">
+                <span class="btn-icon">👥</span>
+                <span class="btn-text">직원 추가</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
       
-      <div class="table-container" style="margin-top: 3rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8f9fa; border-bottom: 1px solid #eee;">
-          <h3 style="margin: 0;">📋 직원 목록</h3>
-          <div style="display: flex; gap: 1rem; align-items: center;">
-            <input 
-              type="text" 
-              id="employeeSearchInput" 
-              placeholder="🔍 이름, 이메일, 부서로 검색..." 
-              style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 250px;"
-              onkeyup="searchEmployees()"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();searchEmployees();}"
-            />
+      <!-- 직원 목록 섹션 -->
+      <div class="employee-list-section">
+        <div class="section-header">
+          <h3 class="section-title">📋 직원 목록</h3>
+          <div class="search-controls">
+            <div class="search-input-wrapper">
+              <input 
+                type="text" 
+                id="employeeSearchInput" 
+                placeholder="🔍 이름, 이메일, 부서로 검색..." 
+                class="search-input"
+                onkeyup="searchEmployees()"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();searchEmployees();}"
+              />
+            </div>
             <button 
               type="button" 
-              class="btn btn-secondary" 
+              class="btn btn-secondary btn-reset" 
               onclick="clearEmployeeSearch()"
-              style="padding: 0.5rem 1rem; font-size: 0.9rem;"
             >
-              🔄 초기화
+              <span class="btn-icon">🔄</span>
+              <span class="btn-text">초기화</span>
             </button>
           </div>
         </div>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>사번</th>
-              <th>이름</th>
-              <th>이메일</th>
-              <th>부서</th>
-              <th>직급</th>
-              <th>관리</th>
-            </tr>
-          </thead>
-          <tbody id="employeeListTable">
-            <tr>
-              <td colspan="6" class="loading">직원 목록을 불러오는 중입니다</td>
-            </tr>
-          </tbody>
-        </table>
+        
+        <div class="table-container">
+          <table class="table employee-table">
+            <thead>
+              <tr>
+                <th class="col-empid">사번</th>
+                <th class="col-name">이름</th>
+                <th class="col-email">이메일</th>
+                <th class="col-dept">부서</th>
+                <th class="col-position">직급</th>
+                <th class="col-actions">관리</th>
+              </tr>
+            </thead>
+            <tbody id="employeeListTable">
+              <tr>
+                <td colspan="6" class="loading-cell">직원 목록을 불러오는 중입니다</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- 📄 페이지네이션 -->
+        <div id="employeePagination" class="pagination-container" style="display: none;">
+          <div class="pagination-info">
+            <span id="paginationInfo">1-10 of 0 직원</span>
+          </div>
+          
+          <div class="pagination-controls">
+            <button class="pagination-btn" id="firstPageBtn" onclick="goToPage(1)" title="첫 페이지">
+              ⏮️
+            </button>
+            <button class="pagination-btn" id="prevPageBtn" onclick="goToPage(currentPage - 1)" title="이전 페이지">
+              ◀️
+            </button>
+            
+            <div id="pageNumbers">
+              <!-- 페이지 번호들이 여기에 동적으로 생성됩니다 -->
+            </div>
+            
+            <button class="pagination-btn" id="nextPageBtn" onclick="goToPage(currentPage + 1)" title="다음 페이지">
+              ▶️
+            </button>
+            <button class="pagination-btn" id="lastPageBtn" onclick="goToPage(totalPages)" title="마지막 페이지">
+              ⏭️
+            </button>
+          </div>
+          
+          <div class="pagination-settings">
+            <label for="itemsPerPage">페이지당:</label>
+            <select id="itemsPerPage" class="pagination-select" onchange="changeItemsPerPage()">
+              <option value="10">10개</option>
+              <option value="20">20개</option>
+              <option value="50">50개</option>
+            </select>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1212,6 +1931,126 @@
 
   </main>
 
+  <!-- 🔧 직원 수정 모달 -->
+  <div id="editEmployeeModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ 직원 정보 수정</h3>
+        <button class="modal-close" onclick="closeEditEmployeeModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form id="editEmployeeForm">
+          <div class="form-row">
+            <div class="form-col">
+              <div class="form-group-modal">
+                <label for="editEmpId">사번</label>
+                <input type="text" id="editEmpId" readonly>
+              </div>
+            </div>
+            <div class="form-col">
+              <div class="form-group-modal">
+                <label for="editEmpName">이름 *</label>
+                <input type="text" id="editEmpName" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group-modal">
+            <label for="editEmpEmail">이메일 *</label>
+            <input type="email" id="editEmpEmail" required>
+          </div>
+          
+          <div class="form-group-modal">
+            <label for="editEmpPhone">전화번호</label>
+            <input type="tel" id="editEmpPhone" placeholder="010-1234-5678">
+          </div>
+          
+          <div class="form-row">
+            <div class="form-col">
+              <div class="form-group-modal">
+                <label for="editEmpDept">부서 *</label>
+                <select id="editEmpDept" required>
+                  <option value="">선택하세요</option>
+                  <!-- 부서 옵션들이 JavaScript로 동적 로드됩니다 -->
+                </select>
+              </div>
+            </div>
+            <div class="form-col">
+              <div class="form-group-modal">
+                <label for="editEmpPosition">직급</label>
+                <input type="text" id="editEmpPosition" placeholder="예: 대리">
+              </div>
+            </div>
+          </div>
+          
+          <div class="checkbox-group">
+            <input type="checkbox" id="resetPasswordCheckbox">
+            <label for="resetPasswordCheckbox">🔑 비밀번호를 temp123으로 초기화</label>
+          </div>
+          
+          <div id="editEmployeeMessage" class="alert" style="display: none; margin-top: 1rem;"></div>
+        </form>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-modal btn-modal-secondary" onclick="closeEditEmployeeModal()">
+          <span>🚫</span> 취소
+        </button>
+        <button type="button" class="btn-modal btn-modal-primary" onclick="saveEmployeeChanges()">
+          <span>💾</span> 저장
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🏢 부서 수정 모달 -->
+  <div id="editDepartmentModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">🏢 부서 정보 수정</h3>
+        <button class="modal-close" onclick="closeEditDepartmentModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <form id="editDepartmentForm">
+          <div class="form-group-modal">
+            <label for="editDeptId">부서코드</label>
+            <input type="text" id="editDeptId" readonly>
+          </div>
+          
+          <div class="form-group-modal">
+            <label for="editDeptName">부서명 *</label>
+            <input type="text" id="editDeptName" required placeholder="예: 마케팅팀">
+          </div>
+          
+          <div class="info-banner" style="margin-top: 1rem;">
+            <div class="info-icon">ℹ️</div>
+            <div class="info-content">
+              <strong>부서 수정 안내</strong>
+              <ul class="info-list">
+                <li>부서코드는 변경할 수 없습니다 (시스템 무결성 보장)</li>
+                <li>부서명은 다른 부서와 중복될 수 없습니다</li>
+                <li>소속 직원들에게 자동으로 변경사항이 반영됩니다</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div id="editDepartmentMessage" class="alert" style="display: none; margin-top: 1rem;"></div>
+        </form>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-modal btn-modal-secondary" onclick="closeEditDepartmentModal()">
+          <span>🚫</span> 취소
+        </button>
+        <button type="button" class="btn-modal btn-modal-primary" onclick="saveDepartmentChanges()">
+          <span>💾</span> 저장
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 사용자 정보를 JavaScript에서 사용할 수 있도록 숨겨진 요소로 전달 -->
   <div id="userInfo" style="display: none;">
     <span id="userEmpId"><?= typeof user !== 'undefined' && user.empId ? user.empId : 'UNKNOWN' ?></span>
@@ -1229,6 +2068,12 @@
     // 📚 전역 변수 (숨겨진 HTML 요소에서 가져옴)
     var currentUser = {};
     var allEmployees = []; // 전역 직원 목록 저장
+    
+    // 📄 페이지네이션 전역 변수
+    var currentPage = 1;
+    var itemsPerPage = 10;
+    var totalPages = 1;
+    var filteredEmployees = []; // 검색 필터링된 직원 목록
     
     // 안전한 사용자 정보 로드
     try {
@@ -2167,7 +3012,7 @@
     }
 
     /**
-     * 👥 직원 목록 표시
+     * 👥 직원 목록 표시 (페이지네이션 적용)
      */
     function displayEmployeeList(employees) {
       console.log('📋 displayEmployeeList 함수 호출됨');
@@ -2179,44 +3024,172 @@
       
       if (!employees || employees.length === 0) {
         console.log('⚠️ 직원 데이터가 없음 - 빈 메시지 표시');
-        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666;">등록된 직원이 없습니다.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" class="empty-message">📋 등록된 직원이 없습니다.</td></tr>';
+        hidePagination();
         return;
       }
       
+      // 페이지네이션 적용
+      filteredEmployees = employees;
+      initializePagination();
+      
+      // 현재 페이지의 직원들만 표시
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const currentPageEmployees = filteredEmployees.slice(startIndex, endIndex);
+      
       console.log('✅ 직원 목록 테이블 생성 중...');
-      const tableHTML = employees.map(emp => `
+      const tableHTML = currentPageEmployees.map(emp => `
         <tr>
-          <td>${emp.empId}</td>
-          <td>${emp.name}</td>
-          <td>${emp.email}</td>
-          <td>${emp.deptName || '미지정'}</td>
-          <td>${emp.position || '-'}</td>
-          <td>
-            <button class="btn btn-secondary" onclick="editEmployee('${emp.empId}')" style="margin-right: 0.5rem;">수정</button>
-            <button class="btn btn-danger" onclick="deleteEmployee('${emp.empId}')">삭제</button>
+          <td class="col-empid">${emp.empId}</td>
+          <td class="col-name">${emp.name}</td>
+          <td class="col-email">${emp.email}</td>
+          <td class="col-dept">${emp.deptName || '미지정'}</td>
+          <td class="col-position">${emp.position || '-'}</td>
+          <td class="col-actions">
+            <button class="btn btn-secondary" onclick="editEmployee('${emp.empId}')">
+              <span class="btn-icon">✏️</span>
+              <span class="btn-text">수정</span>
+            </button>
+            <button class="btn btn-danger" onclick="deleteEmployee('${emp.empId}')">
+              <span class="btn-icon">🗑️</span>
+              <span class="btn-text">삭제</span>
+            </button>
           </td>
         </tr>
       `).join('');
       
       console.log('📝 생성된 HTML:', tableHTML);
       tableBody.innerHTML = tableHTML;
+      updatePaginationUI();
       console.log('✅ 직원 목록 표시 완료');
+    }
+    
+    /**
+     * 📄 페이지네이션 초기화
+     */
+    function initializePagination() {
+      const totalItems = filteredEmployees.length;
+      totalPages = Math.ceil(totalItems / itemsPerPage);
+      
+      // 현재 페이지가 총 페이지 수를 초과하면 1페이지로 이동
+      if (currentPage > totalPages) {
+        currentPage = 1;
+      }
+      
+      // 페이지네이션 UI 표시/숨김
+      const paginationContainer = document.getElementById('employeePagination');
+      if (totalPages > 1) {
+        paginationContainer.style.display = 'flex';
+      } else {
+        paginationContainer.style.display = 'none';
+      }
+      
+      console.log('📄 페이지네이션 초기화: 총 ' + totalItems + '개 항목, ' + totalPages + '페이지');
+    }
+    
+    /**
+     * 🙈 페이지네이션 숨김
+     */
+    function hidePagination() {
+      const paginationContainer = document.getElementById('employeePagination');
+      paginationContainer.style.display = 'none';
+    }
+    
+    /**
+     * 🔄 페이지네이션 UI 업데이트
+     */
+    function updatePaginationUI() {
+      const totalItems = filteredEmployees.length;
+      const startItem = (currentPage - 1) * itemsPerPage + 1;
+      const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+      
+      // 정보 텍스트 업데이트
+      document.getElementById('paginationInfo').textContent = 
+        `${startItem}-${endItem} of ${totalItems} 직원`;
+      
+      // 페이지 번호 버튼들 생성
+      generatePageNumbers();
+      
+      // 이전/다음 버튼 상태 업데이트
+      document.getElementById('firstPageBtn').disabled = currentPage === 1;
+      document.getElementById('prevPageBtn').disabled = currentPage === 1;
+      document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+      document.getElementById('lastPageBtn').disabled = currentPage === totalPages;
+    }
+    
+    /**
+     * 🔢 페이지 번호 버튼 생성
+     */
+    function generatePageNumbers() {
+      const pageNumbersContainer = document.getElementById('pageNumbers');
+      pageNumbersContainer.innerHTML = '';
+      
+      // 페이지 번호 표시 로직 (최대 7개 버튼)
+      let startPage = Math.max(1, currentPage - 3);
+      let endPage = Math.min(totalPages, currentPage + 3);
+      
+      // 시작 페이지 조정
+      if (endPage - startPage < 6) {
+        if (startPage === 1) {
+          endPage = Math.min(totalPages, startPage + 6);
+        } else {
+          startPage = Math.max(1, endPage - 6);
+        }
+      }
+      
+      // 페이지 번호 버튼 생성
+      for (let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.className = 'pagination-btn' + (i === currentPage ? ' active' : '');
+        pageBtn.textContent = i;
+        pageBtn.onclick = () => goToPage(i);
+        pageNumbersContainer.appendChild(pageBtn);
+      }
+    }
+    
+    /**
+     * 📄 특정 페이지로 이동
+     */
+    function goToPage(pageNumber) {
+      if (pageNumber < 1 || pageNumber > totalPages) {
+        return;
+      }
+      
+      currentPage = pageNumber;
+      displayEmployeeList(filteredEmployees);
+      
+      console.log('📄 페이지 이동: ' + pageNumber + '페이지');
+    }
+    
+    /**
+     * 📊 페이지당 항목 수 변경
+     */
+    function changeItemsPerPage() {
+      const select = document.getElementById('itemsPerPage');
+      itemsPerPage = parseInt(select.value);
+      currentPage = 1; // 첫 페이지로 이동
+      
+      displayEmployeeList(filteredEmployees);
+      
+      console.log('📊 페이지당 항목 수 변경: ' + itemsPerPage + '개');
     }
 
     /**
-     * 🔍 직원 검색 기능 (개선된 버전)
+     * 🔍 직원 검색 기능 (페이지네이션 연동)
      */
     function searchEmployees() {
       const searchTerm = document.getElementById('employeeSearchInput').value.toLowerCase().trim();
       
       if (!searchTerm) {
         // 검색어가 없으면 전체 목록 표시
+        currentPage = 1; // 첫 페이지로 이동
         displayEmployeeList(allEmployees);
         return;
       }
       
       // 검색어에 맞는 직원 필터링
-      const filteredEmployees = allEmployees.filter(emp => {
+      const searchFilteredEmployees = allEmployees.filter(emp => {
         const empId = emp.empId.toLowerCase();
         const name = emp.name.toLowerCase();
         const email = emp.email.toLowerCase();
@@ -2230,14 +3203,18 @@
                position.includes(searchTerm);
       });
       
-      // 필터링된 결과 표시
-      displayEmployeeList(filteredEmployees);
+      // 검색 결과 표시
+      currentPage = 1; // 검색 시 첫 페이지로 이동
+      displayEmployeeList(searchFilteredEmployees);
       
       // 검색 결과 메시지 표시
-      if (filteredEmployees.length === 0) {
+      if (searchFilteredEmployees.length === 0) {
         const tableBody = document.getElementById('employeeListTable');
-        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666;">🔍 검색 결과가 없습니다.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" class="search-empty-message">🔍 검색 결과가 없습니다. 다른 키워드로 검색해보세요.</td></tr>';
+        hidePagination();
       }
+      
+      console.log('🔍 검색 완료: "' + searchTerm + '" -> ' + searchFilteredEmployees.length + '개 결과');
     }
 
     /**
@@ -2245,7 +3222,9 @@
      */
     function clearEmployeeSearch() {
       document.getElementById('employeeSearchInput').value = '';
+      currentPage = 1; // 첫 페이지로 이동
       displayEmployeeList(allEmployees); // 전체 목록 표시
+      console.log('🔄 검색 초기화 완료');
     }
 
     /**
@@ -2301,7 +3280,7 @@
     }
 
     /**
-     * 🔄 직원 목록 새로고침 (최적화된 버전)
+     * 🔄 직원 목록 새로고침 (페이지네이션 연동)
      */
     async function refreshEmployeeList() {
       try {
@@ -2311,8 +3290,16 @@
         // 전역 변수 업데이트
         allEmployees = employees || [];
         
-        // 목록 다시 표시 (최신 직원이 맨 위에 옴)
-        displayEmployeeList(allEmployees);
+        // 현재 검색 상태 확인
+        const searchTerm = document.getElementById('employeeSearchInput').value.toLowerCase().trim();
+        
+        if (searchTerm) {
+          // 검색 중이면 다시 검색 실행
+          searchEmployees();
+        } else {
+          // 검색 중이 아니면 전체 목록 표시 (현재 페이지 유지)
+          displayEmployeeList(allEmployees);
+        }
         
         console.log('✅ 직원 목록 새로고침 완료 (총 ' + allEmployees.length + '명)');
       } catch (error) {
@@ -2335,24 +3322,32 @@
     }
 
     /**
-     * 🏢 부서 목록 표시
+     * 🏢 부서 목록 표시 (개선된 버전)
      */
     function displayDepartmentList(departments) {
       const tableBody = document.getElementById('departmentListTable');
       
       if (!departments || departments.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #666;">등록된 부서가 없습니다.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4" class="empty-message">🏢 등록된 부서가 없습니다.</td></tr>';
         return;
       }
       
       tableBody.innerHTML = departments.map(dept => `
         <tr>
-          <td>${dept.deptId}</td>
-          <td>${dept.deptName}</td>
-          <td>${dept.employeeCount || 0}명</td>
-          <td>
-            <button class="btn btn-secondary" onclick="editDepartment('${dept.deptId}')" style="margin-right: 0.5rem;">수정</button>
-            <button class="btn btn-danger" onclick="deleteDepartment('${dept.deptId}')">삭제</button>
+          <td style="text-align: center; font-weight: 600;">${dept.deptId}</td>
+          <td style="font-weight: 500;">${dept.deptName}</td>
+          <td style="text-align: center;">
+            <span style="color: ${dept.employeeCount > 0 ? '#28a745' : '#6c757d'}; font-weight: 600;">
+              ${dept.employeeCount || 0}명
+            </span>
+          </td>
+          <td style="text-align: center;">
+            <button class="btn btn-secondary" onclick="editDepartment('${dept.deptId}')" style="margin-right: 0.5rem;">
+              <span>✏️</span> 수정
+            </button>
+            <button class="btn btn-danger" onclick="deleteDepartment('${dept.deptId}', '${dept.deptName}', ${dept.employeeCount || 0})">
+              <span>🗑️</span> 삭제
+            </button>
           </td>
         </tr>
       `).join('');
@@ -2501,36 +3496,483 @@
     }
 
     /**
-     * ✏️ 직원 수정 (임시 구현)
+     * ✏️ 직원 수정 모달 열기
      */
-    function editEmployee(empId) {
-      showNotification('직원 수정 기능은 개발 중입니다.', 'info');
-    }
-
-    /**
-     * 🗑️ 직원 삭제 (임시 구현)
-     */
-    function deleteEmployee(empId) {
-      if (confirm('정말로 이 직원을 삭제하시겠습니까?')) {
-        showNotification('직원 삭제 기능은 개발 중입니다.', 'info');
+    async function editEmployee(empId) {
+      try {
+        console.log('📝 직원 수정 모달 열기:', empId);
+        
+        // 해당 직원 정보 찾기
+        const employee = allEmployees.find(emp => emp.empId === empId);
+        if (!employee) {
+          showNotification('직원 정보를 찾을 수 없습니다.', 'error');
+          return;
+        }
+        
+        // 모달 필드에 기존 데이터 채우기
+        document.getElementById('editEmpId').value = employee.empId;
+        document.getElementById('editEmpName').value = employee.name;
+        document.getElementById('editEmpEmail').value = employee.email;
+        document.getElementById('editEmpPhone').value = employee.phone || '';
+        document.getElementById('editEmpDept').value = employee.deptId || '';
+        document.getElementById('editEmpPosition').value = employee.position || '';
+        document.getElementById('resetPasswordCheckbox').checked = false;
+        
+        // 부서 선택 옵션 업데이트
+        await loadDepartmentOptionsForEdit();
+        
+        // 모달 열기
+        const modal = document.getElementById('editEmployeeModal');
+        modal.style.display = 'flex';
+        
+        // 메시지 초기화
+        const messageDiv = document.getElementById('editEmployeeMessage');
+        messageDiv.style.display = 'none';
+        
+        console.log('✅ 직원 수정 모달 열기 완료');
+      } catch (error) {
+        console.error('❌ 직원 수정 모달 열기 오류:', error);
+        showNotification('직원 수정 모달을 열 수 없습니다.', 'error');
       }
     }
 
     /**
-     * ✏️ 부서 수정 (임시 구현)
+     * 🏢 수정 모달용 부서 옵션 로드
      */
-    function editDepartment(deptId) {
-      showNotification('부서 수정 기능은 개발 중입니다.', 'info');
+    async function loadDepartmentOptionsForEdit() {
+      try {
+        const departments = await callServerFunction('getAllDepartments');
+        const selectElement = document.getElementById('editEmpDept');
+        
+        selectElement.innerHTML = '<option value="">선택하세요</option>';
+        departments.forEach(dept => {
+          selectElement.innerHTML += `<option value="${dept.deptId}">${dept.deptName}</option>`;
+        });
+      } catch (error) {
+        console.error('부서 옵션 로드 오류:', error);
+      }
     }
 
     /**
-     * 🗑️ 부서 삭제 (임시 구현)
+     * 💾 직원 정보 변경사항 저장
      */
-    function deleteDepartment(deptId) {
-      if (confirm('정말로 이 부서를 삭제하시겠습니까?')) {
-        showNotification('부서 삭제 기능은 개발 중입니다.', 'info');
+    async function saveEmployeeChanges() {
+      try {
+        const empId = document.getElementById('editEmpId').value;
+        const name = document.getElementById('editEmpName').value.trim();
+        const email = document.getElementById('editEmpEmail').value.trim();
+        const phone = document.getElementById('editEmpPhone').value.trim();
+        const deptId = document.getElementById('editEmpDept').value;
+        const position = document.getElementById('editEmpPosition').value.trim();
+        const resetPassword = document.getElementById('resetPasswordCheckbox').checked;
+        
+        // 필수 필드 검증
+        if (!name || !email || !deptId) {
+          showEditEmployeeMessage('이름, 이메일, 부서는 필수 입력 항목입니다.', 'error');
+          return;
+        }
+        
+        // 이메일 형식 검증
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          showEditEmployeeMessage('올바른 이메일 형식을 입력해주세요.', 'error');
+          return;
+        }
+        
+        // 저장 버튼 비활성화
+        const saveBtn = document.querySelector('.btn-modal-primary');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span>💾</span> 저장 중...';
+        
+        // 서버에 변경사항 전송
+        const updateData = {
+          empId: empId,
+          name: name,
+          email: email,
+          phone: phone,
+          deptId: deptId,
+          position: position,
+          resetPassword: resetPassword
+        };
+        
+        const result = await callServerFunction('updateEmployee', updateData);
+        
+        if (result.success) {
+          showEditEmployeeMessage('직원 정보가 성공적으로 수정되었습니다!', 'success');
+          
+          // 성공 메시지 표시 후 모달 닫기
+          setTimeout(() => {
+            closeEditEmployeeModal();
+            showNotification('직원 정보 수정 완료', 'success');
+            
+            // 직원 목록 새로고침
+            refreshEmployeeList();
+          }, 1500);
+          
+        } else {
+          showEditEmployeeMessage('직원 정보 수정 실패: ' + result.error, 'error');
+        }
+        
+      } catch (error) {
+        console.error('❌ 직원 정보 저장 오류:', error);
+        showEditEmployeeMessage('직원 정보 저장 중 오류가 발생했습니다.', 'error');
+      } finally {
+        // 저장 버튼 활성화
+        const saveBtn = document.querySelector('.btn-modal-primary');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span>💾</span> 저장';
       }
     }
+
+    /**
+     * 🚫 직원 수정 모달 닫기
+     */
+    function closeEditEmployeeModal() {
+      const modal = document.getElementById('editEmployeeModal');
+      modal.style.display = 'none';
+      
+      // 폼 초기화
+      document.getElementById('editEmployeeForm').reset();
+      
+      // 메시지 초기화
+      const messageDiv = document.getElementById('editEmployeeMessage');
+      messageDiv.style.display = 'none';
+    }
+
+    /**
+     * 📧 수정 모달 내 메시지 표시
+     */
+    function showEditEmployeeMessage(message, type) {
+      const messageDiv = document.getElementById('editEmployeeMessage');
+      messageDiv.textContent = message;
+      messageDiv.className = 'alert';
+      
+      if (type === 'success') {
+        messageDiv.classList.add('alert-success');
+      } else if (type === 'error') {
+        messageDiv.classList.add('alert-error');
+      }
+      
+      messageDiv.style.display = 'block';
+      
+      // 자동 숨김 (성공 메시지가 아닌 경우)
+      if (type !== 'success') {
+        setTimeout(() => {
+          messageDiv.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    /**
+     * 🗑️ 직원 삭제 (2단계 확인)
+     */
+    async function deleteEmployee(empId) {
+      try {
+        // 해당 직원 정보 찾기
+        const employee = allEmployees.find(emp => emp.empId === empId);
+        if (!employee) {
+          showNotification('직원 정보를 찾을 수 없습니다.', 'error');
+          return;
+        }
+        
+        // 1단계 확인
+        const firstConfirm = confirm(
+          `⚠️ 직원 삭제 확인\n\n` +
+          `사번: ${employee.empId}\n` +
+          `이름: ${employee.name}\n` +
+          `이메일: ${employee.email}\n\n` +
+          `정말로 이 직원을 삭제하시겠습니까?`
+        );
+        
+        if (!firstConfirm) {
+          return;
+        }
+        
+        // 2단계 확인 (안전장치)
+        const secondConfirm = confirm(
+          `🚨 최종 확인\n\n` +
+          `"${employee.name}" 직원을 삭제하면 복구할 수 없습니다.\n` +
+          `정말로 삭제하시겠습니까?\n\n` +
+          `삭제하려면 "확인"을 클릭하세요.`
+        );
+        
+        if (!secondConfirm) {
+          return;
+        }
+        
+        // 로딩 표시
+        showLoading(true);
+        
+        // 서버에 삭제 요청
+        const result = await callServerFunction('deleteEmployee', empId);
+        
+        if (result.success) {
+          showNotification(`${employee.name} 직원이 성공적으로 삭제되었습니다.`, 'success');
+          
+          // 직원 목록 새로고침
+          await refreshEmployeeList();
+          
+          // 검색창 초기화
+          clearEmployeeSearch();
+          
+        } else {
+          showNotification('직원 삭제 실패: ' + result.error, 'error');
+        }
+        
+      } catch (error) {
+        console.error('❌ 직원 삭제 오류:', error);
+        showNotification('직원 삭제 중 오류가 발생했습니다.', 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    /**
+     * ✏️ 부서 수정 모달 열기
+     */
+    async function editDepartment(deptId) {
+      try {
+        console.log('🏢 부서 수정 모달 열기:', deptId);
+        
+        // 해당 부서 정보 가져오기
+        const department = await callServerFunction('getDepartmentById', deptId);
+        if (!department) {
+          showNotification('부서 정보를 찾을 수 없습니다.', 'error');
+          return;
+        }
+        
+        // 모달 필드에 기존 데이터 채우기
+        document.getElementById('editDeptId').value = department.deptId;
+        document.getElementById('editDeptName').value = department.deptName;
+        
+        // 모달 열기
+        const modal = document.getElementById('editDepartmentModal');
+        modal.style.display = 'flex';
+        
+        // 메시지 초기화
+        const messageDiv = document.getElementById('editDepartmentMessage');
+        messageDiv.style.display = 'none';
+        
+        console.log('✅ 부서 수정 모달 열기 완료');
+      } catch (error) {
+        console.error('❌ 부서 수정 모달 열기 오류:', error);
+        showNotification('부서 수정 모달을 열 수 없습니다.', 'error');
+      }
+    }
+
+    /**
+     * 🚫 부서 수정 모달 닫기
+     */
+    function closeEditDepartmentModal() {
+      const modal = document.getElementById('editDepartmentModal');
+      modal.style.display = 'none';
+      
+      // 폼 초기화
+      document.getElementById('editDepartmentForm').reset();
+      
+      // 메시지 초기화
+      const messageDiv = document.getElementById('editDepartmentMessage');
+      messageDiv.style.display = 'none';
+    }
+
+    /**
+     * 💾 부서 정보 변경사항 저장
+     */
+    async function saveDepartmentChanges() {
+      try {
+        const deptId = document.getElementById('editDeptId').value;
+        const deptName = document.getElementById('editDeptName').value.trim();
+        
+        // 필수 필드 검증
+        if (!deptName) {
+          showEditDepartmentMessage('부서명은 필수 입력 항목입니다.', 'error');
+          return;
+        }
+        
+        // 부서명 길이 검증
+        if (deptName.length < 2 || deptName.length > 20) {
+          showEditDepartmentMessage('부서명은 2자 이상 20자 이하로 입력해주세요.', 'error');
+          return;
+        }
+        
+        // 저장 버튼 비활성화
+        const saveBtn = document.querySelector('#editDepartmentModal .btn-modal-primary');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span>💾</span> 저장 중...';
+        
+        // 서버에 변경사항 전송
+        const updateData = {
+          deptId: deptId,
+          deptName: deptName
+        };
+        
+        const result = await callServerFunction('updateDepartment', updateData);
+        
+        if (result.success) {
+          showEditDepartmentMessage('부서 정보가 성공적으로 수정되었습니다!', 'success');
+          
+          // 성공 메시지 표시 후 모달 닫기
+          setTimeout(() => {
+            closeEditDepartmentModal();
+            showNotification('부서 정보 수정 완료', 'success');
+            
+            // 부서 목록 새로고침
+            loadDepartmentManagement();
+          }, 1500);
+          
+        } else {
+          showEditDepartmentMessage('부서 정보 수정 실패: ' + result.error, 'error');
+        }
+        
+      } catch (error) {
+        console.error('❌ 부서 정보 저장 오류:', error);
+        showEditDepartmentMessage('부서 정보 저장 중 오류가 발생했습니다.', 'error');
+      } finally {
+        // 저장 버튼 활성화
+        const saveBtn = document.querySelector('#editDepartmentModal .btn-modal-primary');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span>💾</span> 저장';
+      }
+    }
+
+    /**
+     * 📧 부서 수정 모달 내 메시지 표시
+     */
+    function showEditDepartmentMessage(message, type) {
+      const messageDiv = document.getElementById('editDepartmentMessage');
+      messageDiv.textContent = message;
+      messageDiv.className = 'alert';
+      
+      if (type === 'success') {
+        messageDiv.classList.add('alert-success');
+      } else if (type === 'error') {
+        messageDiv.classList.add('alert-error');
+      }
+      
+      messageDiv.style.display = 'block';
+      
+      // 자동 숨김 (성공 메시지가 아닌 경우)
+      if (type !== 'success') {
+        setTimeout(() => {
+          messageDiv.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    /**
+     * 🗑️ 부서 삭제 (스마트 안전장치)
+     */
+    async function deleteDepartment(deptId, deptName, employeeCount) {
+      try {
+        console.log('🗑️ 부서 삭제 요청:', deptId, deptName, employeeCount);
+        
+        // 소속 직원이 있는지 확인
+        if (employeeCount > 0) {
+          alert(
+            `⚠️ 부서 삭제 불가\n\n` +
+            `부서명: ${deptName}\n` +
+            `소속 직원: ${employeeCount}명\n\n` +
+            `소속 직원이 있는 부서는 삭제할 수 없습니다.\n` +
+            `먼저 소속 직원들을 다른 부서로 이동시킨 후 삭제해주세요.`
+          );
+          return;
+        }
+        
+        // 1단계 확인
+        const firstConfirm = confirm(
+          `⚠️ 부서 삭제 확인\n\n` +
+          `부서코드: ${deptId}\n` +
+          `부서명: ${deptName}\n` +
+          `소속 직원: ${employeeCount}명\n\n` +
+          `정말로 이 부서를 삭제하시겠습니까?`
+        );
+        
+        if (!firstConfirm) {
+          return;
+        }
+        
+        // 2단계 확인 (안전장치)
+        const secondConfirm = confirm(
+          `🚨 최종 확인\n\n` +
+          `"${deptName}" 부서를 삭제하면 복구할 수 없습니다.\n` +
+          `부서 관련 모든 이력이 함께 삭제됩니다.\n\n` +
+          `정말로 삭제하시겠습니까?\n\n` +
+          `삭제하려면 "확인"을 클릭하세요.`
+        );
+        
+        if (!secondConfirm) {
+          return;
+        }
+        
+        // 로딩 표시
+        showLoading(true);
+        
+        // 서버에 삭제 요청
+        const result = await callServerFunction('deleteDepartment', deptId);
+        
+        if (result.success) {
+          showNotification(`${deptName} 부서가 성공적으로 삭제되었습니다.`, 'success');
+          
+          // 부서 목록 새로고침
+          loadDepartmentManagement();
+          
+        } else {
+          showNotification('부서 삭제 실패: ' + result.error, 'error');
+        }
+        
+      } catch (error) {
+        console.error('❌ 부서 삭제 오류:', error);
+        showNotification('부서 삭제 중 오류가 발생했습니다.', 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+    
+    /**
+     * 🎯 모달 이벤트 리스너 설정
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+      // 직원 수정 모달 배경 클릭 시 닫기
+      const editEmployeeModal = document.getElementById('editEmployeeModal');
+      if (editEmployeeModal) {
+        editEmployeeModal.addEventListener('click', function(event) {
+          // 모달 배경(overlay)을 클릭했을 때만 닫기 (모달 내용 클릭 시에는 닫지 않음)
+          if (event.target === editEmployeeModal) {
+            closeEditEmployeeModal();
+          }
+        });
+      }
+      
+      // 부서 수정 모달 배경 클릭 시 닫기
+      const editDepartmentModal = document.getElementById('editDepartmentModal');
+      if (editDepartmentModal) {
+        editDepartmentModal.addEventListener('click', function(event) {
+          // 모달 배경(overlay)을 클릭했을 때만 닫기 (모달 내용 클릭 시에는 닫지 않음)
+          if (event.target === editDepartmentModal) {
+            closeEditDepartmentModal();
+          }
+        });
+      }
+      
+      // ESC 키로 모달 닫기
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+          // 직원 수정 모달 닫기
+          const empModal = document.getElementById('editEmployeeModal');
+          if (empModal && empModal.style.display === 'flex') {
+            closeEditEmployeeModal();
+            return;
+          }
+          
+          // 부서 수정 모달 닫기
+          const deptModal = document.getElementById('editDepartmentModal');
+          if (deptModal && deptModal.style.display === 'flex') {
+            closeEditDepartmentModal();
+            return;
+          }
+        }
+      });
+    });
   </script>
 </body>
 </html> 

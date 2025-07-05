@@ -1453,3 +1453,306 @@ function getEmployeesHardcoded() {
     },
   ];
 }
+
+/**
+ * ✏️ 직원 정보 수정
+ */
+function updateEmployee(updateData) {
+  try {
+    const sheet = getSheet("Employees");
+    const data = sheet.getDataRange().getValues();
+
+    // 해당 직원 찾기
+    let targetRowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == updateData.empId) {
+        targetRowIndex = i;
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      return {
+        success: false,
+        error: "직원 정보를 찾을 수 없습니다.",
+      };
+    }
+
+    // 이메일 중복 확인 (본인 제외)
+    for (let i = 1; i < data.length; i++) {
+      if (i !== targetRowIndex && data[i][2] === updateData.email) {
+        return {
+          success: false,
+          error: "이미 존재하는 이메일입니다.",
+        };
+      }
+    }
+
+    // 부서 유효성 확인
+    const deptSheet = getSheet("Departments");
+    const deptData = deptSheet.getDataRange().getValues();
+    let deptExists = false;
+    for (let i = 1; i < deptData.length; i++) {
+      if (deptData[i][0] == updateData.deptId) {
+        deptExists = true;
+        break;
+      }
+    }
+
+    if (!deptExists) {
+      return {
+        success: false,
+        error: "존재하지 않는 부서입니다.",
+      };
+    }
+
+    // 직원 정보 업데이트
+    const row = targetRowIndex + 1;
+    sheet.getRange(row, 2).setValue(updateData.name); // B열: Name
+    sheet.getRange(row, 3).setValue(updateData.email); // C열: Email
+    sheet.getRange(row, 4).setValue(updateData.phone); // D열: Phone
+    sheet.getRange(row, 5).setValue(updateData.deptId); // E열: DeptId
+    sheet.getRange(row, 7).setValue(updateData.position); // G열: Position
+
+    // 비밀번호 초기화 옵션
+    if (updateData.resetPassword) {
+      sheet.getRange(row, 8).setValue(""); // H열: PasswordHash를 비움 (temp123 사용)
+    }
+
+    return {
+      success: true,
+      message: "직원 정보가 성공적으로 수정되었습니다.",
+      empId: updateData.empId,
+    };
+  } catch (error) {
+    console.error("직원 수정 오류:", error);
+    return {
+      success: false,
+      error: "직원 수정 중 오류가 발생했습니다: " + error.message,
+    };
+  }
+}
+
+/**
+ * 🗑️ 직원 삭제
+ */
+function deleteEmployee(empId) {
+  try {
+    const sheet = getSheet("Employees");
+    const data = sheet.getDataRange().getValues();
+
+    // 해당 직원 찾기
+    let targetRowIndex = -1;
+    let employeeName = "";
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == empId) {
+        targetRowIndex = i;
+        employeeName = data[i][1];
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      return {
+        success: false,
+        error: "삭제할 직원 정보를 찾을 수 없습니다.",
+      };
+    }
+
+    // 안전장치: 관리자인지 확인
+    const session = getValidSession();
+    if (session && session.empId == empId) {
+      return {
+        success: false,
+        error: "본인의 계정은 삭제할 수 없습니다.",
+      };
+    }
+
+    // 실제 행 삭제 (하드 삭제)
+    sheet.deleteRow(targetRowIndex + 1);
+
+    // 삭제 로그 기록 (선택사항 - 실제 구현에서는 별도 로그 시트에 기록)
+    console.log(
+      `직원 삭제: ${empId} (${employeeName}) - ${new Date().toISOString()}`
+    );
+
+    return {
+      success: true,
+      message: `${employeeName} 직원이 성공적으로 삭제되었습니다.`,
+      deletedEmpId: empId,
+      deletedName: employeeName,
+    };
+  } catch (error) {
+    console.error("직원 삭제 오류:", error);
+    return {
+      success: false,
+      error: "직원 삭제 중 오류가 발생했습니다: " + error.message,
+    };
+  }
+}
+
+/**
+ * 🏢 부서 정보 단일 조회
+ */
+function getDepartmentById(deptId) {
+  try {
+    const sheet = getSheet("Departments");
+    const data = sheet.getDataRange().getValues();
+
+    // 헤더 건너뛰고 부서 찾기
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == deptId) {
+        return {
+          deptId: data[i][0],
+          deptName: data[i][1],
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error("부서 정보 조회 오류:", error);
+    return null;
+  }
+}
+
+/**
+ * ✏️ 부서 정보 수정
+ */
+function updateDepartment(updateData) {
+  try {
+    const sheet = getSheet("Departments");
+    const data = sheet.getDataRange().getValues();
+
+    // 해당 부서 찾기
+    let targetRowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == updateData.deptId) {
+        targetRowIndex = i;
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      return {
+        success: false,
+        error: "부서 정보를 찾을 수 없습니다.",
+      };
+    }
+
+    // 부서명 중복 확인 (본인 제외)
+    for (let i = 1; i < data.length; i++) {
+      if (i !== targetRowIndex && data[i][1] === updateData.deptName) {
+        return {
+          success: false,
+          error: "이미 존재하는 부서명입니다.",
+        };
+      }
+    }
+
+    // 부서명 길이 확인
+    if (updateData.deptName.length < 2 || updateData.deptName.length > 20) {
+      return {
+        success: false,
+        error: "부서명은 2자 이상 20자 이하로 입력해주세요.",
+      };
+    }
+
+    // 부서 정보 업데이트 (부서코드는 변경하지 않음)
+    const updateRow = targetRowIndex + 1;
+    sheet.getRange(updateRow, 2).setValue(updateData.deptName); // 부서명만 업데이트
+
+    return {
+      success: true,
+      message: "부서 정보가 성공적으로 수정되었습니다.",
+    };
+  } catch (error) {
+    console.error("부서 수정 오류:", error);
+    return {
+      success: false,
+      error: "부서 수정 중 오류가 발생했습니다: " + error.message,
+    };
+  }
+}
+
+/**
+ * 🗑️ 부서 삭제
+ */
+function deleteDepartment(deptId) {
+  try {
+    const deptSheet = getSheet("Departments");
+    const empSheet = getSheet("Employees");
+
+    // 부서 존재 확인
+    const deptData = deptSheet.getDataRange().getValues();
+    let targetRowIndex = -1;
+    let deptName = "";
+
+    for (let i = 1; i < deptData.length; i++) {
+      if (deptData[i][0] == deptId) {
+        targetRowIndex = i;
+        deptName = deptData[i][1];
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      return {
+        success: false,
+        error: "부서 정보를 찾을 수 없습니다.",
+      };
+    }
+
+    // 소속 직원 확인
+    const empData = empSheet.getDataRange().getValues();
+    let employeeCount = 0;
+    let employeeNames = [];
+
+    for (let i = 1; i < empData.length; i++) {
+      if (empData[i][4] == deptId) {
+        // 부서ID 컬럼 확인
+        employeeCount++;
+        employeeNames.push(empData[i][1]); // 직원 이름 저장
+      }
+    }
+
+    if (employeeCount > 0) {
+      return {
+        success: false,
+        error: `소속 직원이 ${employeeCount}명 있는 부서는 삭제할 수 없습니다.\n\n소속 직원: ${employeeNames.join(
+          ", "
+        )}\n\n먼저 소속 직원들을 다른 부서로 이동시킨 후 삭제해주세요.`,
+      };
+    }
+
+    // 시스템 부서 보호 (기본 부서들 삭제 방지)
+    const systemDepts = ["10", "20", "30", "40"]; // 개발팀, 영업팀, 인사팀, 총무팀
+    if (systemDepts.includes(deptId.toString())) {
+      return {
+        success: false,
+        error: "시스템 기본 부서는 삭제할 수 없습니다.",
+      };
+    }
+
+    // 부서 삭제 (1-based index)
+    deptSheet.deleteRow(targetRowIndex + 1);
+
+    // 삭제 로그 기록
+    console.log(
+      `부서 삭제: ${deptId} (${deptName}) - ${new Date().toISOString()}`
+    );
+
+    return {
+      success: true,
+      message: `${deptName} 부서가 성공적으로 삭제되었습니다.`,
+      deletedDeptId: deptId,
+      deletedName: deptName,
+    };
+  } catch (error) {
+    console.error("부서 삭제 오류:", error);
+    return {
+      success: false,
+      error: "부서 삭제 중 오류가 발생했습니다: " + error.message,
+    };
+  }
+}
