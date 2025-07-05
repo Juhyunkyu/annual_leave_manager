@@ -559,17 +559,17 @@
     </a>
     <? if (user.userType === 'admin') { ?>
       <!-- 관리자 전용 메뉴 -->
-      <a class="menu-item" onclick="showPage('adminMenu')">
-        <span class="icon">🔧</span> 시스템 관리
+      <a class="menu-item" onclick="showPage('employeeManagement')">
+        <span class="icon">👥</span> 직원 관리
       </a>
-      <a class="menu-item" onclick="showPage('approvals')">
-        <span class="icon">✅</span> 연차 승인 관리
-      </a>
-      <a class="menu-item" onclick="showPage('userManagement')">
-        <span class="icon">👥</span> 사용자 관리
+      <a class="menu-item" onclick="showPage('departmentManagement')">
+        <span class="icon">🏢</span> 부서 관리
       </a>
       <a class="menu-item" onclick="showPage('statistics')">
         <span class="icon">📈</span> 통계 및 보고서
+      </a>
+      <a class="menu-item" onclick="showPage('systemSettings')">
+        <span class="icon">⚙️</span> 설정
       </a>
     <? } else { ?>
       <!-- 직원 전용 메뉴 -->
@@ -604,52 +604,103 @@
         <? } ?>
       </div>
       
-      <div class="dashboard-grid">
-        <div class="dashboard-card">
-          <div class="card-icon">📅</div>
-          <div class="card-value" id="remainingLeaves">-</div>
-          <div class="card-label">남은 연차</div>
+      <? if (user.userType === 'admin') { ?>
+        <!-- 관리자용 시스템 현황 대시보드 -->
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <div class="card-icon">👥</div>
+            <div class="card-value" id="totalEmployees">-</div>
+            <div class="card-label">전체 직원 수</div>
+          </div>
+          
+          <div class="dashboard-card">
+            <div class="card-icon">📝</div>
+            <div class="card-value" id="totalRequests">-</div>
+            <div class="card-label">총 연차 신청</div>
+          </div>
+          
+          <div class="dashboard-card">
+            <div class="card-icon">✅</div>
+            <div class="card-value" id="approvedRequests">-</div>
+            <div class="card-label">승인된 신청</div>
+          </div>
+          
+          <div class="dashboard-card">
+            <div class="card-icon">🏢</div>
+            <div class="card-value" id="totalDepartments">-</div>
+            <div class="card-label">전체 부서 수</div>
+          </div>
         </div>
-        
-        <div class="dashboard-card">
-          <div class="card-icon">📝</div>
-          <div class="card-value" id="pendingRequests">-</div>
-          <div class="card-label">대기 중인 신청</div>
+      <? } else { ?>
+        <!-- 직원용 개인 연차 대시보드 -->
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <div class="card-icon">📅</div>
+            <div class="card-value" id="remainingLeaves">-</div>
+            <div class="card-label">남은 연차</div>
+          </div>
+          
+          <div class="dashboard-card">
+            <div class="card-icon">📝</div>
+            <div class="card-value" id="pendingRequests">-</div>
+            <div class="card-label">대기 중인 신청</div>
+          </div>
+          
+          <div class="dashboard-card">
+            <div class="card-icon">✅</div>
+            <div class="card-value" id="pendingApprovals">-</div>
+            <div class="card-label">결재 대기</div>
+          </div>
+          
+          <div class="dashboard-card">
+            <div class="card-icon">📊</div>
+            <div class="card-value" id="thisMonthUsed">-</div>
+            <div class="card-label">이번 달 사용</div>
+          </div>
         </div>
-        
-        <div class="dashboard-card">
-          <div class="card-icon">✅</div>
-          <div class="card-value" id="pendingApprovals">-</div>
-          <div class="card-label">결재 대기</div>
-        </div>
-        
-        <div class="dashboard-card">
-          <div class="card-icon">📊</div>
-          <div class="card-value" id="thisMonthUsed">-</div>
-          <div class="card-label">이번 달 사용</div>
-        </div>
-      </div>
+      <? } ?>
       
       <!-- 최근 활동 -->
-      <div class="table-container">
-        <h3 style="padding: 1rem; margin: 0; background: #f8f9fa; font-weight: 600;">최근 연차 신청 내역</h3>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>신청일</th>
-              <th>연차 종류</th>
-              <th>기간</th>
-              <th>상태</th>
-              <th>사유</th>
-            </tr>
-          </thead>
-          <tbody id="recentRequestsTable">
-            <tr>
-              <td colspan="5" class="loading">최근 내역을 불러오는 중입니다</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <? if (user.userType === 'admin') { ?>
+        <!-- 관리자용 시스템 관리 바로가기 -->
+        <div class="recent-activity">
+          <h3 style="padding: 1rem; margin: 0; background: #f8f9fa; font-weight: 600;">🔧 관리 바로가기</h3>
+          <div class="dashboard-grid" style="grid-template-columns: repeat(2, 1fr); gap: 1.5rem; padding: 1.5rem;">
+            <div class="dashboard-card" onclick="showPage('employeeManagement')" style="cursor: pointer;">
+              <div class="card-icon">👥</div>
+              <div class="card-value">직원 관리</div>
+              <div class="card-label">직원 추가/수정/삭제</div>
+            </div>
+            
+            <div class="dashboard-card" onclick="showPage('departmentManagement')" style="cursor: pointer;">
+              <div class="card-icon">🏢</div>
+              <div class="card-value">부서 관리</div>
+              <div class="card-label">부서 추가/수정/삭제</div>
+            </div>
+          </div>
+        </div>
+      <? } else { ?>
+        <!-- 직원용 최근 신청 내역 -->
+        <div class="table-container">
+          <h3 style="padding: 1rem; margin: 0; background: #f8f9fa; font-weight: 600;">최근 연차 신청 내역</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>신청일</th>
+                <th>연차 종류</th>
+                <th>기간</th>
+                <th>상태</th>
+                <th>사유</th>
+              </tr>
+            </thead>
+            <tbody id="recentRequestsTable">
+              <tr>
+                <td colspan="5" class="loading">최근 내역을 불러오는 중입니다</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      <? } ?>
     </div>
 
     <!-- 📝 연차 신청 페이지 -->
@@ -883,6 +934,8 @@
 
     <!-- 🔧 관리자 메뉴 페이지 -->
     <? if (user.isAdmin) { ?>
+    <!-- 🔧 관리자 메뉴 페이지 (더 이상 사용하지 않음 - 사이드바로 이동) -->
+    <!--
     <div id="adminMenuPage" class="page">
       <div class="page-header">
         <h1 class="page-title">🔧 관리자 메뉴</h1>
@@ -915,6 +968,7 @@
         </div>
       </div>
     </div>
+    -->
 
     <!-- 👥 직원 관리 페이지 -->
     <div id="employeeManagementPage" class="page">
@@ -926,12 +980,13 @@
       <div class="form-container">
         <h3>📝 직원 추가</h3>
         <form id="addEmployeeForm" onsubmit="addEmployee(event)">
+          <div style="background: #e8f4fd; border: 1px solid #bee5eb; border-radius: 8px; padding: 12px; margin-bottom: 20px; color: #0c5460;">
+            <strong>📋 자동 생성 정보</strong><br>
+            • 사번: 시스템에서 자동으로 생성됩니다 (기존 최대 사번 + 1)<br>
+            • 초기 비밀번호: <code>temp123</code> (첫 로그인 시 변경 필요)
+          </div>
+          
           <div class="form-grid">
-            <div class="form-group">
-              <label for="empId">사번 *</label>
-              <input type="text" id="empId" required placeholder="예: 1001">
-            </div>
-            
             <div class="form-group">
               <label for="empName">이름 *</label>
               <input type="text" id="empName" required placeholder="홍길동">
@@ -1047,7 +1102,7 @@
     <!-- ⚙️ 시스템 설정 페이지 -->
     <div id="systemSettingsPage" class="page">
       <div class="page-header">
-        <h1 class="page-title">⚙️ 시스템 설정</h1>
+        <h1 class="page-title">⚙️ 설정</h1>
         <p class="page-subtitle">연차 정책 및 시스템 설정을 관리합니다.</p>
       </div>
       
@@ -1091,7 +1146,7 @@
     <!-- 📈 통계 및 백업 페이지 -->
     <div id="statisticsPage" class="page">
       <div class="page-header">
-        <h1 class="page-title">📈 통계 및 백업</h1>
+        <h1 class="page-title">📈 통계 및 보고서</h1>
         <p class="page-subtitle">시스템 통계를 확인하고 데이터를 백업합니다.</p>
       </div>
       
@@ -1261,6 +1316,11 @@
      * 📄 페이지 전환 함수
      */
     function showPage(pageId) {
+      // userManagement를 employeeManagement로 리다이렉트 (호환성)
+      if (pageId === 'userManagement') {
+        pageId = 'employeeManagement';
+      }
+      
       // 모든 페이지 숨김
       document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
@@ -1279,7 +1339,8 @@
       
       // 해당 메뉴 활성화
       document.querySelectorAll('.menu-item').forEach(item => {
-        if (item.textContent.includes(getPageTitle(pageId))) {
+        if (item.textContent.includes(getPageTitle(pageId)) || 
+            (pageId === 'employeeManagement' && item.textContent.includes('직원 관리'))) {
           item.classList.add('active');
         }
       });
@@ -1304,9 +1365,10 @@
         'changePassword': '비밀번호 변경',
         'adminMenu': '관리자 메뉴',
         'employeeManagement': '직원 관리',
+        'userManagement': '직원 관리', // 관리자 메뉴용 별칭
         'departmentManagement': '부서 관리',
-        'systemSettings': '시스템 설정',
-        'statistics': '통계 및 백업'
+        'systemSettings': '설정',
+        'statistics': '통계 및 보고서'
       };
       return titles[pageId] || '';
     }
@@ -1318,26 +1380,46 @@
       try {
         console.log('대시보드 데이터 로드 중...');
         
-        // 서버에서 대시보드 데이터 가져오기
-        const dashboardData = await callServerFunction('getDashboardData', currentUser.empId);
-        
-        if (dashboardData) {
-          document.getElementById('remainingLeaves').textContent = dashboardData.remainingLeaves || '15';
-          document.getElementById('pendingRequests').textContent = dashboardData.pendingRequests || '0';
-          document.getElementById('pendingApprovals').textContent = dashboardData.pendingApprovals || '0';
-          document.getElementById('thisMonthUsed').textContent = dashboardData.thisMonthUsed || '0';
+        if (currentUser.isAdmin) {
+          // 관리자용 시스템 현황 데이터 로드
+          const systemStats = await callServerFunction('getSystemStatistics');
+          const departments = await callServerFunction('getAllDepartments');
           
-          // 최근 신청 내역 로드
-          loadRecentRequests();
+          if (systemStats) {
+            document.getElementById('totalEmployees').textContent = systemStats.totalEmployees || '0';
+            document.getElementById('totalRequests').textContent = systemStats.totalRequests || '0';
+            document.getElementById('approvedRequests').textContent = systemStats.approvedRequests || '0';
+            document.getElementById('totalDepartments').textContent = departments ? departments.length : '0';
+          }
+        } else {
+          // 직원용 개인 연차 데이터 로드
+          const dashboardData = await callServerFunction('getDashboardData', currentUser.empId);
+          
+          if (dashboardData) {
+            document.getElementById('remainingLeaves').textContent = dashboardData.remainingLeaves || '15';
+            document.getElementById('pendingRequests').textContent = dashboardData.pendingRequests || '0';
+            document.getElementById('pendingApprovals').textContent = dashboardData.pendingApprovals || '0';
+            document.getElementById('thisMonthUsed').textContent = dashboardData.thisMonthUsed || '0';
+            
+            // 최근 신청 내역 로드
+            loadRecentRequests();
+          }
         }
         
       } catch (error) {
         console.error('대시보드 데이터 로드 오류:', error);
         // 기본값 설정
-        document.getElementById('remainingLeaves').textContent = '15';
-        document.getElementById('pendingRequests').textContent = '0';
-        document.getElementById('pendingApprovals').textContent = '0';
-        document.getElementById('thisMonthUsed').textContent = '0';
+        if (currentUser.isAdmin) {
+          if (document.getElementById('totalEmployees')) document.getElementById('totalEmployees').textContent = '0';
+          if (document.getElementById('totalRequests')) document.getElementById('totalRequests').textContent = '0';
+          if (document.getElementById('approvedRequests')) document.getElementById('approvedRequests').textContent = '0';
+          if (document.getElementById('totalDepartments')) document.getElementById('totalDepartments').textContent = '0';
+        } else {
+          if (document.getElementById('remainingLeaves')) document.getElementById('remainingLeaves').textContent = '15';
+          if (document.getElementById('pendingRequests')) document.getElementById('pendingRequests').textContent = '0';
+          if (document.getElementById('pendingApprovals')) document.getElementById('pendingApprovals').textContent = '0';
+          if (document.getElementById('thisMonthUsed')) document.getElementById('thisMonthUsed').textContent = '0';
+        }
       }
     }
     
@@ -1391,6 +1473,7 @@
           initializeLeaveRequestForm();
           break;
         case 'employeeManagement':
+        case 'userManagement': // 호환성을 위한 별칭
           loadEmployeeManagement();
           break;
         case 'departmentManagement':
@@ -1971,12 +2054,6 @@
       }
     }
 
-    function formatDate(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('ko-KR');
-    }
-
     function calculateDays(startDate, endDate, leaveType) {
       if (!startDate || !endDate) return 0;
       
@@ -2016,24 +2093,51 @@
     // =====================================
 
     /**
+     * 🔍 디버깅: 시트 데이터 확인 (임시 함수)
+     */
+    async function debugEmployeeData() {
+      try {
+        const result = await callServerFunction('debugSheetData');
+        console.log('시트 디버깅 결과:', result);
+        alert('시트 디버깅 결과를 콘솔에서 확인하세요.');
+        return result;
+      } catch (error) {
+        console.error('디버깅 오류:', error);
+        alert('디버깅 오류: ' + error.message);
+      }
+    }
+
+    /**
      * 👥 직원 관리 페이지 로드
      */
     async function loadEmployeeManagement() {
       try {
-        const employees = await callServerFunction('getAllEmployees');
+        console.log('🔍 직원 관리 페이지 로드 시작');
+        
+        console.log('📞 getEmployeesForWeb 서버 함수 호출 중...');
+        const employees = await callServerFunction('getEmployeesForWeb');
+        console.log('✅ getEmployeesForWeb 결과:', employees);
+        
+        console.log('📞 getAllDepartments 서버 함수 호출 중...');
         const departments = await callServerFunction('getAllDepartments');
+        console.log('✅ getAllDepartments 결과:', departments);
         
         // 부서 선택 옵션 업데이트
         const deptSelect = document.getElementById('empDept');
-        deptSelect.innerHTML = '<option value="">선택하세요</option>';
-        departments.forEach(dept => {
-          deptSelect.innerHTML += `<option value="${dept.deptId}">${dept.deptName}</option>`;
-        });
+        if (deptSelect) {
+          deptSelect.innerHTML = '<option value="">선택하세요</option>';
+          departments.forEach(dept => {
+            deptSelect.innerHTML += `<option value="${dept.deptId}">${dept.deptName}</option>`;
+          });
+        }
         
         // 직원 목록 표시
+        console.log('📋 직원 목록 표시 중...');
         displayEmployeeList(employees);
+        console.log('✅ 직원 관리 페이지 로드 완료');
+        
       } catch (error) {
-        console.error('직원 관리 페이지 로드 오류:', error);
+        console.error('❌ 직원 관리 페이지 로드 오류:', error);
         showNotification('직원 목록을 불러올 수 없습니다.', 'error');
       }
     }
@@ -2042,14 +2146,21 @@
      * 👥 직원 목록 표시
      */
     function displayEmployeeList(employees) {
+      console.log('📋 displayEmployeeList 함수 호출됨');
+      console.log('📊 전달받은 직원 데이터:', employees);
+      console.log('📈 직원 수:', employees ? employees.length : 'undefined');
+      
       const tableBody = document.getElementById('employeeListTable');
+      console.log('🎯 테이블 요소:', tableBody);
       
       if (!employees || employees.length === 0) {
+        console.log('⚠️ 직원 데이터가 없음 - 빈 메시지 표시');
         tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666;">등록된 직원이 없습니다.</td></tr>';
         return;
       }
       
-      tableBody.innerHTML = employees.map(emp => `
+      console.log('✅ 직원 목록 테이블 생성 중...');
+      const tableHTML = employees.map(emp => `
         <tr>
           <td>${emp.empId}</td>
           <td>${emp.name}</td>
@@ -2062,6 +2173,10 @@
           </td>
         </tr>
       `).join('');
+      
+      console.log('📝 생성된 HTML:', tableHTML);
+      tableBody.innerHTML = tableHTML;
+      console.log('✅ 직원 목록 표시 완료');
     }
 
     /**
@@ -2071,7 +2186,6 @@
       event.preventDefault();
       
       const formData = {
-        empId: document.getElementById('empId').value,
         name: document.getElementById('empName').value,
         email: document.getElementById('empEmail').value,
         phone: document.getElementById('empPhone').value,
@@ -2084,7 +2198,20 @@
         const result = await callServerFunction('addEmployee', formData);
         
         if (result.success) {
-          showNotification('직원이 성공적으로 추가되었습니다.', 'success');
+          // 상세한 성공 메시지 표시
+          const successMessage = `
+            ✅ 직원이 성공적으로 추가되었습니다!
+            
+            📋 생성된 사번: ${result.empId}
+            📧 이메일: ${result.loginInfo.email}
+            🔑 초기 비밀번호: ${result.loginInfo.password}
+            
+            ⚠️ 해당 직원에게 로그인 정보를 안전하게 전달해주세요.
+            첫 로그인 시 비밀번호 변경이 필요합니다.
+          `;
+          
+          alert(successMessage);
+          showNotification('직원 추가 완료 (사번: ' + result.empId + ')', 'success');
           document.getElementById('addEmployeeForm').reset();
           loadEmployeeManagement(); // 목록 새로고침
         } else {

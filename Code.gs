@@ -630,33 +630,11 @@ function getSheet(sheetName) {
 }
 
 /**
- * 👤 이메일로 사용자 정보 조회
+ * 👤 이메일로 사용자 정보 조회 (통합 함수 사용)
  */
 function getUserByEmail(email) {
   try {
-    const sheet = getSheet("Employees");
-    const data = sheet.getDataRange().getValues();
-
-    // 헤더 제외하고 검색
-    for (let i = 1; i < data.length; i++) {
-      if (
-        data[i][2] &&
-        data[i][2].toString().toLowerCase() === email.toLowerCase()
-      ) {
-        return {
-          empId: data[i][0],
-          name: data[i][1],
-          email: data[i][2],
-          phone: data[i][3],
-          deptId: data[i][4],
-          joinDate: data[i][5],
-          position: data[i][6],
-          passwordHash: data[i][7] || "",
-        };
-      }
-    }
-
-    return null;
+    return getEmployee(email, "email");
   } catch (error) {
     console.error("사용자 조회 오류:", error);
     throw error;
@@ -664,46 +642,16 @@ function getUserByEmail(email) {
 }
 
 /**
- * 👤 직원ID로 사용자 정보 조회
+ * 👤 직원ID로 사용자 정보 조회 (통합 함수 사용)
  */
 function getUserByEmpId(empId) {
   try {
-    const sheet = getSheet("Employees");
-    const data = sheet.getDataRange().getValues();
-
-    // 헤더 제외하고 검색
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] && data[i][0].toString() === empId.toString()) {
-        // 부서명도 함께 조회
-        let departmentName = "미지정";
-        try {
-          const deptSheet = getSheet("Departments");
-          const deptData = deptSheet.getDataRange().getValues();
-          for (let j = 1; j < deptData.length; j++) {
-            if (deptData[j][0] === data[i][4]) {
-              departmentName = deptData[j][1];
-              break;
-            }
-          }
-        } catch (e) {
-          console.log("부서 정보 조회 실패:", e.message);
-        }
-
-        return {
-          empId: data[i][0],
-          name: data[i][1],
-          email: data[i][2],
-          phone: data[i][3],
-          deptId: data[i][4],
-          department: departmentName,
-          joinDate: data[i][5],
-          position: data[i][6],
-          passwordHash: data[i][7] || "",
-        };
-      }
+    const employee = getEmployee(empId);
+    if (employee) {
+      // 기존 호환성을 위해 department 필드 추가
+      employee.department = employee.deptName;
     }
-
-    return null;
+    return employee;
   } catch (error) {
     console.error("직원ID로 사용자 조회 오류:", error);
     throw error;
@@ -1058,22 +1006,59 @@ function getRecentRequests(empId) {
 // =====================================
 
 /**
- * 👥 직원 추가
+ * 🔢 사번 자동 생성
+ */
+function generateNextEmpId() {
+  try {
+    const sheet = getSheet("Employees");
+    const data = sheet.getDataRange().getValues();
+
+    let maxEmpId = 1000; // 시작 번호
+
+    // 기존 사번 중 최대값 찾기
+    for (let i = 1; i < data.length; i++) {
+      const empId = parseInt(data[i][0]);
+      if (!isNaN(empId) && empId > maxEmpId) {
+        maxEmpId = empId;
+      }
+    }
+
+    // 다음 사번 생성 (최대값 + 1)
+    return (maxEmpId + 1).toString();
+  } catch (error) {
+    console.error("사번 생성 오류:", error);
+    // 오류 시 현재 시간 기반으로 생성
+    return "2024" + String(Date.now()).slice(-4);
+  }
+}
+
+/**
+ * 🔑 초기 비밀번호 생성 (보안 강화)
+ */
+function generateInitialPassword(empId, name) {
+  try {
+    // 방식 1: 사번 + 이름 첫 글자 + 고정 문자
+    const nameInitial = name.charAt(0);
+    const initialPassword = `${empId}${nameInitial}@2024`;
+
+    return initialPassword;
+  } catch (error) {
+    console.error("초기 비밀번호 생성 오류:", error);
+    // 오류 시 기본 임시 비밀번호 반환
+    return "temp123!";
+  }
+}
+
+/**
+ * 👥 직원 추가 (개선된 버전)
  */
 function addEmployee(employeeData) {
   try {
     const sheet = getSheet("Employees");
     const data = sheet.getDataRange().getValues();
 
-    // 중복 사번 확인
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] == employeeData.empId) {
-        return {
-          success: false,
-          error: "이미 존재하는 사번입니다.",
-        };
-      }
-    }
+    // 사번 자동 생성
+    const newEmpId = generateNextEmpId();
 
     // 중복 이메일 확인
     for (let i = 1; i < data.length; i++) {
@@ -1085,9 +1070,12 @@ function addEmployee(employeeData) {
       }
     }
 
+    // 초기 비밀번호 생성 (해시화하지 않음 - 첫 로그인 시 temp123으로 처리)
+    const initialPassword = "temp123"; // 단순한 임시 비밀번호 유지
+
     // 새 직원 추가
     sheet.appendRow([
-      employeeData.empId,
+      newEmpId, // 자동 생성된 사번
       employeeData.name,
       employeeData.email,
       employeeData.phone || "",
@@ -1100,6 +1088,12 @@ function addEmployee(employeeData) {
     return {
       success: true,
       message: "직원이 성공적으로 추가되었습니다.",
+      empId: newEmpId,
+      initialPassword: initialPassword, // 초기 비밀번호 반환
+      loginInfo: {
+        email: employeeData.email,
+        password: initialPassword,
+      },
     };
   } catch (error) {
     console.error("직원 추가 오류:", error);
@@ -1244,30 +1238,28 @@ function updateSystemSettings(settings) {
 }
 
 /**
- * 📈 시스템 통계 조회
+ * 📊 시스템 통계 조회 (관리자용) - 통합 함수 사용
  */
 function getSystemStatistics() {
   try {
-    const empSheet = getSheet("Employees");
-    const reqSheet = getSheet("LeaveRequests");
-    const usageSheet = getSheet("LeaveUsage");
+    // 전체 직원 수 (통합 함수 사용)
+    const allEmployees = getAllEmployees();
+    const totalEmployees = allEmployees.length;
 
-    // 전체 직원 수
-    const totalEmployees = Math.max(
-      0,
-      empSheet.getDataRange().getNumRows() - 1
-    );
+    // 전체 부서 수 (통합 함수 사용)
+    const allDepartments = getAllDepartments();
+    const totalDepartments = allDepartments.length;
 
     // 총 신청 건수
-    const totalRequests = Math.max(0, reqSheet.getDataRange().getNumRows() - 1);
+    const reqSheet = getSheet("LeaveRequests");
+    const reqData = reqSheet.getDataRange().getValues();
+    const totalRequests = Math.max(0, reqData.length - 1);
 
     // 승인된 신청 건수
     let approvedRequests = 0;
     if (totalRequests > 0) {
-      const reqData = reqSheet.getDataRange().getValues();
       for (let i = 1; i < reqData.length; i++) {
         if (reqData[i][7] === "승인") {
-          // Status 컬럼
           approvedRequests++;
         }
       }
@@ -1275,19 +1267,28 @@ function getSystemStatistics() {
 
     // 총 사용 연차 일수
     let totalLeaveDays = 0;
-    const usageNumRows = usageSheet.getDataRange().getNumRows();
-    if (usageNumRows > 1) {
-      const usageData = usageSheet.getDataRange().getValues();
+    const usageSheet = getSheet("LeaveUsage");
+    const usageData = usageSheet.getDataRange().getValues();
+    if (usageData.length > 1) {
       for (let i = 1; i < usageData.length; i++) {
-        totalLeaveDays += parseFloat(usageData[i][2]) || 0; // UsedDays 컬럼
+        totalLeaveDays += parseFloat(usageData[i][2]) || 0;
       }
     }
+
+    console.log("시스템 통계:", {
+      totalEmployees,
+      totalRequests,
+      approvedRequests,
+      totalLeaveDays,
+      totalDepartments,
+    });
 
     return {
       totalEmployees: totalEmployees,
       totalRequests: totalRequests,
       approvedRequests: approvedRequests,
       totalLeaveDays: totalLeaveDays,
+      totalDepartments: totalDepartments,
     };
   } catch (error) {
     console.error("시스템 통계 조회 오류:", error);
@@ -1296,6 +1297,7 @@ function getSystemStatistics() {
       totalRequests: 0,
       approvedRequests: 0,
       totalLeaveDays: 0,
+      totalDepartments: 0,
     };
   }
 }
@@ -1342,4 +1344,105 @@ function createSystemBackup() {
       error: "백업 생성 중 오류가 발생했습니다: " + error.message,
     };
   }
+}
+
+/**
+ * 🧪 임시 디버깅 함수 - 직원 데이터 확인
+ */
+function testEmployeeData() {
+  try {
+    console.log("=== 직원 데이터 테스트 시작 ===");
+
+    // 1. 직원 시트 원본 데이터 확인
+    const empSheet = getSheet("Employees");
+    const empData = empSheet.getDataRange().getValues();
+    console.log("직원 시트 원본 데이터:", empData);
+
+    // 2. 부서 시트 원본 데이터 확인
+    const deptSheet = getSheet("Departments");
+    const deptData = deptSheet.getDataRange().getValues();
+    console.log("부서 시트 원본 데이터:", deptData);
+
+    // 3. getAllEmployees 함수 결과 확인
+    const employees = getAllEmployees();
+    console.log("getAllEmployees 결과:", employees);
+    console.log("직원 수:", employees.length);
+
+    return {
+      empData: empData,
+      deptData: deptData,
+      employees: employees,
+      employeeCount: employees.length,
+    };
+  } catch (error) {
+    console.error("테스트 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 🔧 웹앱용 getAllEmployees 래퍼 함수 (날짜 직렬화 처리)
+ */
+function getEmployeesForWeb() {
+  try {
+    console.log("=== getEmployeesForWeb 호출 ===");
+
+    const result = getAllEmployees();
+    console.log("getAllEmployees 원본 결과:", result);
+
+    if (!result || result.length === 0) {
+      console.log("결과가 없음");
+      return [];
+    }
+
+    // 날짜 객체를 문자열로 변환하여 직렬화 문제 해결
+    const serializedResult = result.map((emp) => ({
+      empId: emp.empId,
+      name: emp.name,
+      email: emp.email,
+      phone: emp.phone,
+      deptId: emp.deptId,
+      deptName: emp.deptName,
+      joinDate: emp.joinDate ? emp.joinDate.toString() : "",
+      position: emp.position,
+      passwordHash: emp.passwordHash,
+    }));
+
+    console.log("직렬화된 결과:", serializedResult);
+    return serializedResult;
+  } catch (error) {
+    console.error("getEmployeesForWeb 오류:", error);
+    console.error("오류 스택:", error.stack);
+    return [];
+  }
+}
+
+/**
+ * 🧪 임시 하드코딩 테스트 함수
+ */
+function getEmployeesHardcoded() {
+  return [
+    {
+      empId: "1001",
+      name: "홍길동",
+      email: "dandy_jhk@naver.com",
+      phone: "010-2616-3096",
+      deptId: "10",
+      deptName: "개발팀",
+      joinDate: "2025-07-03",
+      position: "과장",
+      passwordHash: "",
+    },
+    {
+      empId: "1002",
+      name: "날라리",
+      email: "hhh@naver.com",
+      phone: "010-2222-3333",
+      deptId: "20",
+      deptName: "영업팀",
+      joinDate: "2025-07-04",
+      position: "팀장",
+      passwordHash: "",
+    },
+  ];
 }

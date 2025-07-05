@@ -764,29 +764,11 @@ function sendFinalApprovalNotification(reqId) {
 // =====================================
 
 /**
- * 👤 직원 ID로 직원 정보 조회
+ * 👤 직원 ID로 직원 정보 조회 (통합 함수 사용)
  */
 function getEmployeeById(empId) {
   try {
-    const sheet = getSheet("Employees");
-    const data = sheet.getDataRange().getValues();
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] == empId) {
-        return {
-          empId: data[i][0],
-          name: data[i][1],
-          email: data[i][2],
-          phone: data[i][3],
-          deptId: data[i][4],
-          joinDate: data[i][5],
-          position: data[i][6],
-          passwordHash: data[i][7],
-        };
-      }
-    }
-
-    return null;
+    return getEmployee(empId);
   } catch (error) {
     console.error("직원 정보 조회 오류:", error);
     return null;

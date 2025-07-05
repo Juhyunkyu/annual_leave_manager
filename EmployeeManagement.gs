@@ -1,46 +1,66 @@
 /**
- * 📋 연차관리 시스템 - 직원 관리 모듈
+ * 📋 연차관리 시스템 - 직원 관리 모듈 (통합 최적화)
  *
  * 🔧 기능: 직원 조회, 부서 관리, 결재/협조 대기 목록 조회
  * 👥 처리: Employees, Departments 시트 관리
  */
 
 // =====================================
-// 👥 직원 관리 함수들
+// 👥 직원 관리 통합 함수들
 // =====================================
 
 /**
- * 👥 전체 직원 목록 조회 (부서 정보 포함)
+ * 👥 전체 직원 목록 조회 (부서 정보 포함) - 통합 최적화
  */
 function getAllEmployees() {
   try {
+    console.log("getAllEmployees 함수 시작");
     const empSheet = getSheet("Employees");
     const empData = empSheet.getDataRange().getValues();
+    console.log("직원 시트 데이터 행 수:", empData.length);
 
-    const deptSheet = getSheet("Departments");
-    const deptData = deptSheet.getDataRange().getValues();
-
-    // 부서 정보를 맵으로 변환
-    const deptMap = {};
-    for (let i = 1; i < deptData.length; i++) {
-      deptMap[deptData[i][0]] = deptData[i][1]; // DeptID -> DeptName
+    if (empData.length <= 1) {
+      console.log("직원 데이터가 없습니다 (헤더만 존재)");
+      return [];
     }
+
+    // 부서 정보를 한 번만 조회하여 맵으로 변환
+    const deptMap = getDepartmentMap();
+    console.log("부서 맵:", deptMap);
 
     const employees = [];
 
-    // 헤더 제외하고 직원 정보 수집
+    // 헤더 제외하고 직원 정보 수집 (완화된 검증)
     for (let i = 1; i < empData.length; i++) {
-      employees.push({
-        empId: empData[i][0],
-        name: empData[i][1],
-        email: empData[i][2],
-        phone: empData[i][3],
-        deptId: empData[i][4],
-        deptName: deptMap[empData[i][4]] || "부서 미지정",
-        joinDate: empData[i][5],
-        position: empData[i][6],
-      });
+      const row = empData[i];
+
+      // 사번이 있으면 유효한 직원으로 처리 (이름이 없어도 허용)
+      const empId = row[0];
+      const name = row[1];
+
+      if (empId !== null && empId !== undefined && empId !== "") {
+        const empIdStr = empId.toString().trim();
+        const nameStr = name ? name.toString().trim() : "이름 없음";
+
+        if (empIdStr) {
+          console.log(`직원 데이터 처리 중: 사번=${empIdStr}, 이름=${nameStr}`);
+
+          employees.push({
+            empId: empIdStr,
+            name: nameStr,
+            email: row[2] ? row[2].toString().trim() : "",
+            phone: row[3] ? row[3].toString().trim() : "",
+            deptId: row[4] ? row[4].toString().trim() : "",
+            deptName: deptMap[row[4]] || "부서 미지정",
+            joinDate: row[5] || "",
+            position: row[6] ? row[6].toString().trim() : "",
+            passwordHash: row[7] || "",
+          });
+        }
+      }
     }
+
+    console.log("수집된 직원 수:", employees.length);
 
     // 이름순 정렬
     employees.sort((a, b) => a.name.localeCompare(b.name, "ko"));
@@ -53,52 +73,89 @@ function getAllEmployees() {
 }
 
 /**
- * 👥 특정 직원 ID들로 직원 정보 조회
+ * 🏢 부서 정보 맵 생성 (캐싱 최적화)
  */
-function getEmployeesByIds(empIds) {
+function getDepartmentMap() {
   try {
-    if (!empIds || empIds.length === 0) {
-      return [];
+    const deptSheet = getSheet("Departments");
+    const deptData = deptSheet.getDataRange().getValues();
+    console.log("부서 시트 데이터:", deptData);
+
+    const deptMap = {};
+    for (let i = 1; i < deptData.length; i++) {
+      if (deptData[i][0] && deptData[i][1]) {
+        const deptId = deptData[i][0].toString();
+        const deptName = deptData[i][1].toString();
+        deptMap[deptId] = deptName;
+        console.log(`부서 매핑: ${deptId} → ${deptName}`);
+      }
     }
 
-    const allEmployees = getAllEmployees();
-    return allEmployees.filter((emp) => empIds.includes(emp.empId.toString()));
+    console.log("최종 부서 맵:", deptMap);
+    return deptMap;
   } catch (error) {
-    console.error("직원 ID 조회 오류:", error);
-    return [];
+    console.error("부서 맵 생성 오류:", error);
+    return {};
   }
 }
 
 /**
- * 🏢 전체 부서 목록 조회
+ * 👤 직원 정보 조회 (통합 함수 - ID 또는 이메일로 조회)
+ */
+function getEmployee(identifier, searchType = "id") {
+  try {
+    const employees = getAllEmployees();
+
+    if (searchType === "email") {
+      return (
+        employees.find(
+          (emp) =>
+            emp.email && emp.email.toLowerCase() === identifier.toLowerCase()
+        ) || null
+      );
+    } else {
+      return (
+        employees.find((emp) => emp.empId === identifier.toString()) || null
+      );
+    }
+  } catch (error) {
+    console.error("직원 정보 조회 오류:", error);
+    return null;
+  }
+}
+
+/**
+ * 🏢 전체 부서 목록 조회 (직원 수 계산 최적화)
  */
 function getAllDepartments() {
   try {
     const deptSheet = getSheet("Departments");
     const deptData = deptSheet.getDataRange().getValues();
 
-    const empSheet = getSheet("Employees");
-    const empData = empSheet.getDataRange().getValues();
+    if (deptData.length <= 1) {
+      return [];
+    }
+
+    // 전체 직원 목록을 한 번만 조회
+    const allEmployees = getAllEmployees();
 
     const departments = [];
 
     for (let i = 1; i < deptData.length; i++) {
-      const deptId = deptData[i][0];
+      if (deptData[i][0] && deptData[i][1]) {
+        const deptId = deptData[i][0].toString();
 
-      // 해당 부서의 직원 수 계산
-      let employeeCount = 0;
-      for (let j = 1; j < empData.length; j++) {
-        if (empData[j][4] == deptId) {
-          // DeptID 컬럼 비교
-          employeeCount++;
-        }
+        // 해당 부서의 직원 수 계산
+        const employeeCount = allEmployees.filter(
+          (emp) => emp.deptId === deptId
+        ).length;
+
+        departments.push({
+          deptId: deptId,
+          deptName: deptData[i][1],
+          employeeCount: employeeCount,
+        });
       }
-
-      departments.push({
-        deptId: deptId,
-        deptName: deptData[i][1],
-        employeeCount: employeeCount,
-      });
     }
 
     return departments;
@@ -114,9 +171,26 @@ function getAllDepartments() {
 function getEmployeesByDepartment(deptId) {
   try {
     const allEmployees = getAllEmployees();
-    return allEmployees.filter((emp) => emp.deptId == deptId);
+    return allEmployees.filter((emp) => emp.deptId === deptId.toString());
   } catch (error) {
     console.error("부서별 직원 조회 오류:", error);
+    return [];
+  }
+}
+
+/**
+ * 👥 특정 직원 ID들로 직원 정보 조회
+ */
+function getEmployeesByIds(empIds) {
+  try {
+    if (!empIds || empIds.length === 0) {
+      return [];
+    }
+
+    const allEmployees = getAllEmployees();
+    return allEmployees.filter((emp) => empIds.includes(emp.empId));
+  } catch (error) {
+    console.error("직원 ID 조회 오류:", error);
     return [];
   }
 }
@@ -138,7 +212,6 @@ function getMyRequests(empId, limit = null) {
     // 헤더 제외하고 해당 직원의 신청 찾기
     for (let i = 1; i < data.length; i++) {
       if (data[i][1] == empId) {
-        // EmpID 비교
         requests.push({
           reqId: data[i][0],
           empId: data[i][1],
@@ -175,7 +248,7 @@ function getRequestDetails(reqId) {
     }
 
     // 신청자 정보
-    const applicant = getEmployeeById(requestInfo.empId);
+    const applicant = getEmployee(requestInfo.empId);
 
     // 결재 현황
     const approvalStatus = getApprovalStatus(reqId);
@@ -215,7 +288,7 @@ function getApprovalStatus(reqId) {
         const stepOrder = stepsData[i][3];
 
         // 해당 결재자 정보
-        const approver = getEmployeeById(approverId);
+        const approver = getEmployee(approverId);
 
         // 결재 로그에서 처리 결과 찾기
         let approvalLog = null;
@@ -272,7 +345,7 @@ function getCollaborationStatus(reqId) {
         const stepOrder = stepsData[i][2];
 
         // 해당 협조자 정보
-        const collaborator = getEmployeeById(collaboratorId);
+        const collaborator = getEmployee(collaboratorId);
 
         // 협조 로그에서 처리 결과 찾기
         let collaborationLog = null;
@@ -329,7 +402,6 @@ function getPendingApprovals(empId) {
     // 내가 결재자로 지정된 건들 찾기
     for (let i = 1; i < stepsData.length; i++) {
       if (stepsData[i][2] == empId) {
-        // ApproverID 비교
         const reqId = stepsData[i][0];
         const stepOrder = stepsData[i][3];
 
@@ -346,7 +418,7 @@ function getPendingApprovals(empId) {
         if (!alreadyProcessed && isMyTurnToApprove(reqId, stepOrder)) {
           const requestInfo = getRequestInfo(reqId);
           if (requestInfo && requestInfo.status === "대기") {
-            const applicant = getEmployeeById(requestInfo.empId);
+            const applicant = getEmployee(requestInfo.empId);
 
             pendingApprovals.push({
               reqId: reqId,
@@ -393,7 +465,6 @@ function getPendingCollaborations(empId) {
     // 내가 협조자로 지정된 건들 찾기
     for (let i = 1; i < stepsData.length; i++) {
       if (stepsData[i][1] == empId) {
-        // CollaboratorID 비교
         const reqId = stepsData[i][0];
 
         // 이미 처리했는지 확인
@@ -409,7 +480,7 @@ function getPendingCollaborations(empId) {
         if (!alreadyProcessed) {
           const requestInfo = getRequestInfo(reqId);
           if (requestInfo && requestInfo.status === "대기") {
-            const applicant = getEmployeeById(requestInfo.empId);
+            const applicant = getEmployee(requestInfo.empId);
 
             pendingCollaborations.push({
               reqId: reqId,
@@ -541,7 +612,7 @@ function processCollaboration(reqId, collaboratorId, result, comment) {
 function getMyInfo(empId) {
   try {
     // 기본 직원 정보
-    const employee = getEmployeeById(empId);
+    const employee = getEmployee(empId);
     if (!employee) {
       return null;
     }
