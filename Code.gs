@@ -1347,6 +1347,233 @@ function createSystemBackup() {
 }
 
 /**
+ * 📊 개선된 통계 데이터 조회 (실시간 운영 지표 + KPI)
+ */
+function getAdvancedStatistics() {
+  try {
+    console.log("📊 고급 통계 데이터 조회 시작");
+
+    // 기본 데이터 가져오기
+    const employees = getAllEmployees();
+    const departments = getAllDepartments();
+    const reqSheet = getSheet("LeaveRequests");
+    const reqData = reqSheet.getDataRange().getValues();
+
+    // 현재 날짜 정보
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    // 1. 실시간 운영 지표
+    let pendingRequests = 0;
+    let thisMonthRequests = 0;
+    let totalRequests = Math.max(0, reqData.length - 1);
+    let approvedRequests = 0;
+    let totalProcessTime = 0;
+    let processedCount = 0;
+
+    if (totalRequests > 0) {
+      for (let i = 1; i < reqData.length; i++) {
+        const status = reqData[i][7];
+        const submitDate = new Date(reqData[i][8]);
+
+        // 대기 중인 신청
+        if (status === "대기") {
+          pendingRequests++;
+        }
+
+        // 이번 달 신청
+        if (
+          submitDate.getMonth() + 1 === currentMonth &&
+          submitDate.getFullYear() === currentYear
+        ) {
+          thisMonthRequests++;
+        }
+
+        // 승인된 신청
+        if (status === "승인") {
+          approvedRequests++;
+        }
+
+        // 처리 시간 계산 (승인/반려된 것들)
+        if (status === "승인" || status === "반려") {
+          const processDate = reqData[i][9]
+            ? new Date(reqData[i][9])
+            : new Date();
+          const daysDiff = Math.max(
+            1,
+            Math.ceil((processDate - submitDate) / (1000 * 60 * 60 * 24))
+          );
+          totalProcessTime += daysDiff;
+          processedCount++;
+        }
+      }
+    }
+
+    // 평균 처리 시간
+    const avgProcessTime =
+      processedCount > 0 ? Math.round(totalProcessTime / processedCount) : 0;
+
+    // 승인률
+    const approvalRate =
+      totalRequests > 0
+        ? Math.round((approvedRequests / totalRequests) * 100)
+        : 0;
+
+    // 2. 핵심 성과 지표 (KPI)
+    const totalEmployees = employees.length;
+    const totalDepartments = departments.length;
+
+    // 평균 연차 사용일수 계산
+    const usageSheet = getSheet("LeaveUsage");
+    const usageData = usageSheet.getDataRange().getValues();
+    let totalLeaveDays = 0;
+
+    if (usageData.length > 1) {
+      for (let i = 1; i < usageData.length; i++) {
+        totalLeaveDays += parseFloat(usageData[i][2]) || 0;
+      }
+    }
+
+    const avgLeaveUsage =
+      totalEmployees > 0
+        ? Math.round((totalLeaveDays / totalEmployees) * 10) / 10
+        : 0;
+
+    // 시스템 건전성 점수 계산 (0-100)
+    let healthScore = 70; // 기본 점수
+
+    // 승인률이 높으면 +점수
+    if (approvalRate >= 80) healthScore += 15;
+    else if (approvalRate >= 60) healthScore += 10;
+    else if (approvalRate >= 40) healthScore += 5;
+
+    // 처리 시간이 빠르면 +점수
+    if (avgProcessTime <= 1) healthScore += 15;
+    else if (avgProcessTime <= 3) healthScore += 10;
+    else if (avgProcessTime <= 7) healthScore += 5;
+
+    // 대기 건수가 적으면 +점수
+    if (pendingRequests === 0) healthScore += 10;
+    else if (pendingRequests <= 2) healthScore += 5;
+
+    healthScore = Math.min(100, Math.max(0, healthScore));
+
+    const result = {
+      // 실시간 운영 지표
+      pendingRequests: pendingRequests,
+      thisMonthRequests: thisMonthRequests,
+      avgProcessTime: avgProcessTime,
+      approvalRate: approvalRate,
+
+      // 핵심 성과 지표
+      totalEmployees: totalEmployees,
+      avgLeaveUsage: avgLeaveUsage,
+      totalDepartments: totalDepartments,
+      systemHealth: healthScore,
+
+      // 추가 정보
+      totalRequests: totalRequests,
+      approvedRequests: approvedRequests,
+      totalLeaveDays: totalLeaveDays,
+    };
+
+    console.log("📊 고급 통계 결과:", result);
+    return result;
+  } catch (error) {
+    console.error("고급 통계 조회 오류:", error);
+    return {
+      pendingRequests: 0,
+      thisMonthRequests: 0,
+      avgProcessTime: 0,
+      approvalRate: 0,
+      totalEmployees: 0,
+      avgLeaveUsage: 0,
+      totalDepartments: 0,
+      systemHealth: 0,
+      totalRequests: 0,
+      approvedRequests: 0,
+      totalLeaveDays: 0,
+    };
+  }
+}
+
+/**
+ * 🏢 부서별 통계 데이터 조회
+ */
+function getDepartmentStatistics() {
+  try {
+    console.log("🏢 부서별 통계 조회 시작");
+
+    const employees = getAllEmployees();
+    const departments = getAllDepartments();
+    const usageSheet = getSheet("LeaveUsage");
+    const usageData = usageSheet.getDataRange().getValues();
+
+    const departmentStats = [];
+
+    // 각 부서별로 통계 계산
+    departments.forEach((dept) => {
+      const deptEmployees = employees.filter(
+        (emp) => emp.deptId === dept.deptId
+      );
+      const employeeCount = deptEmployees.length;
+
+      if (employeeCount > 0) {
+        let totalUsed = 0;
+        let totalRemaining = 0;
+
+        // 부서 직원들의 연차 사용 현황 집계
+        deptEmployees.forEach((emp) => {
+          // 사용한 연차 계산
+          let usedLeaves = 0;
+          if (usageData.length > 1) {
+            for (let i = 1; i < usageData.length; i++) {
+              if (usageData[i][0] === emp.empId) {
+                usedLeaves += parseFloat(usageData[i][2]) || 0;
+              }
+            }
+          }
+
+          totalUsed += usedLeaves;
+
+          // 잔여 연차 계산 (기본 15일 - 사용한 연차)
+          const basicLeaves = 15;
+          const remaining = Math.max(0, basicLeaves - usedLeaves);
+          totalRemaining += remaining;
+        });
+
+        // 평균 계산
+        const avgUsed = employeeCount > 0 ? totalUsed / employeeCount : 0;
+        const avgRemaining =
+          employeeCount > 0 ? totalRemaining / employeeCount : 0;
+
+        // 사용률 계산 (%)
+        const usageRate = Math.round((avgUsed / 15) * 100);
+
+        departmentStats.push({
+          deptId: dept.deptId,
+          deptName: dept.deptName,
+          employeeCount: employeeCount,
+          avgUsed: Math.round(avgUsed * 10) / 10,
+          avgRemainingLeaves: Math.round(avgRemaining * 10) / 10,
+          usageRate: Math.max(0, Math.min(100, usageRate)),
+        });
+      }
+    });
+
+    // 사용률 기준으로 정렬 (높은 순)
+    departmentStats.sort((a, b) => b.usageRate - a.usageRate);
+
+    console.log("🏢 부서별 통계 결과:", departmentStats);
+    return departmentStats;
+  } catch (error) {
+    console.error("부서별 통계 조회 오류:", error);
+    return [];
+  }
+}
+
+/**
  * 🧪 임시 디버깅 함수 - 직원 데이터 확인
  */
 function testEmployeeData() {
@@ -1753,6 +1980,111 @@ function deleteDepartment(deptId) {
     return {
       success: false,
       error: "부서 삭제 중 오류가 발생했습니다: " + error.message,
+    };
+  }
+}
+
+/**
+ * 🎯 직원 부서 이동 (드래그 앤 드롭용)
+ */
+function moveEmployeeDepartment(moveData) {
+  try {
+    console.log("🎯 직원 부서 이동 요청:", moveData);
+
+    const empSheet = getSheet("Employees");
+    const deptSheet = getSheet("Departments");
+
+    const empId = moveData.empId;
+    const newDeptId = moveData.newDeptId;
+
+    // 입력 유효성 검증
+    if (!empId || !newDeptId) {
+      return {
+        success: false,
+        error: "직원 사번과 부서 코드는 필수입니다.",
+      };
+    }
+
+    // 직원 존재 확인
+    const empData = empSheet.getDataRange().getValues();
+    let targetRowIndex = -1;
+    let employeeName = "";
+    let currentDeptId = "";
+
+    for (let i = 1; i < empData.length; i++) {
+      if (empData[i][0] == empId) {
+        targetRowIndex = i;
+        employeeName = empData[i][1];
+        currentDeptId = empData[i][4];
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      return {
+        success: false,
+        error: "직원 정보를 찾을 수 없습니다.",
+      };
+    }
+
+    // 같은 부서로 이동하려는 경우
+    if (currentDeptId == newDeptId) {
+      return {
+        success: false,
+        error: "이미 해당 부서에 소속되어 있습니다.",
+      };
+    }
+
+    // 대상 부서 존재 확인
+    const deptData = deptSheet.getDataRange().getValues();
+    let targetDeptExists = false;
+    let targetDeptName = "";
+
+    for (let i = 1; i < deptData.length; i++) {
+      if (deptData[i][0] == newDeptId) {
+        targetDeptExists = true;
+        targetDeptName = deptData[i][1];
+        break;
+      }
+    }
+
+    if (!targetDeptExists) {
+      return {
+        success: false,
+        error: "이동할 부서가 존재하지 않습니다.",
+      };
+    }
+
+    // 세션 확인 (관리자 권한 확인)
+    const session = getValidSession();
+    if (!session || !session.isAdmin) {
+      return {
+        success: false,
+        error: "관리자 권한이 필요합니다.",
+      };
+    }
+
+    // 부서 이동 실행
+    const updateRow = targetRowIndex + 1;
+    empSheet.getRange(updateRow, 5).setValue(newDeptId); // 부서ID 컬럼 업데이트 (E열)
+
+    // 이동 로그 기록
+    const logMessage = `부서 이동: ${employeeName}(${empId}) -> ${targetDeptName}(${newDeptId}) - ${new Date().toISOString()}`;
+    console.log(logMessage);
+
+    return {
+      success: true,
+      message: `${employeeName}님이 ${targetDeptName}으로 성공적으로 이동되었습니다.`,
+      empId: empId,
+      employeeName: employeeName,
+      newDeptId: newDeptId,
+      newDeptName: targetDeptName,
+    };
+  } catch (error) {
+    console.error("직원 부서 이동 오류:", error);
+    return {
+      success: false,
+      error: "부서 이동 중 오류가 발생했습니다: " + error.message,
     };
   }
 }
