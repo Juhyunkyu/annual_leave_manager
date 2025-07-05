@@ -3242,6 +3242,9 @@
         // 기본 UI 초기화
         initializeUI();
         
+        // 🔒 자동 로그아웃 시스템 초기화
+        initializeAutoLogout();
+        
         // 대시보드 데이터 로드 (비동기)
         setTimeout(() => {
           loadDashboardData();
@@ -3252,6 +3255,120 @@
         showErrorMessage('시스템 초기화 중 오류가 발생했습니다.');
       }
     });
+
+    /**
+     * 🔒 자동 로그아웃 시스템 초기화 (서버 기반 세션 체크)
+     */
+    function initializeAutoLogout() {
+      console.log('🔒 자동 로그아웃 시스템 초기화...');
+      
+      // 🎯 새로운 세션 시작 - 이전 세션 정리
+      const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('currentSessionId', sessionId);
+      localStorage.setItem('sessionStartTime', Date.now().toString());
+      
+      // 🧹 이전 세션 정리 (새 세션 시작 시)
+      localStorage.removeItem('sessionClosed');
+      localStorage.removeItem('logoutTime');
+      
+      // 🚪 창 닫기 감지 (beforeunload) - 창 닫기 시에만
+      window.addEventListener('beforeunload', function(event) {
+        console.log('🚪 창 닫기 감지 - 로그아웃 처리 중...');
+        performAutoLogout();
+      });
+      
+      // 🚪 페이지 언로드 감지 (unload) - 창 닫기 시에만
+      window.addEventListener('unload', function(event) {
+        console.log('🚪 페이지 언로드 감지 - 로그아웃 처리 중...');
+        performAutoLogout();
+      });
+      
+      // ⏰ 주기적 세션 유효성 체크 (30초마다, 테스트용)
+      setInterval(checkServerSessionValidity, 30000); // 30초 = 30,000ms
+      
+      console.log('✅ 자동 로그아웃 시스템 초기화 완료');
+    }
+
+    /**
+     * 🌐 서버 세션 유효성 체크
+     */
+    async function checkServerSessionValidity() {
+      try {
+        console.log('🔍 서버 세션 유효성 체크 중...');
+        
+        const result = await callServerFunction('checkSessionValidity');
+        
+        if (!result || !result.valid) {
+          console.log('⚠️ 서버 세션 무효 - 강제 로그아웃');
+          
+          // 세션 무효화 알림
+          showNotification('세션이 만료되었습니다. 로그인 페이지로 이동합니다.', 'error');
+          
+          // 로컬 데이터 정리
+          clearLocalSession();
+          
+          // 2초 후 로그인 페이지로 이동
+          setTimeout(() => {
+            const baseUrl = window.location.href.split('?')[0];
+            window.location.href = baseUrl + '?logout=true&message=' + encodeURIComponent('세션이 만료되었습니다.');
+          }, 2000);
+        } else {
+          console.log('✅ 서버 세션 유효');
+        }
+      } catch (error) {
+        console.error('❌ 서버 세션 체크 오류:', error);
+        // 오류 발생 시 5분 후 다시 체크
+        setTimeout(checkServerSessionValidity, 300000);
+      }
+    }
+
+    /**
+     * 🚪 즉시 자동 로그아웃 실행 (간소화된 버전)
+     */
+    function performAutoLogout() {
+      try {
+        console.log('🔒 자동 로그아웃 실행 중...');
+        
+        // 로컬 데이터 정리
+        clearLocalSession();
+        
+        // 서버 세션 삭제 (비동기)
+        google.script.run
+          .withSuccessHandler(() => console.log('✅ 서버 세션 정리 완료'))
+          .withFailureHandler((error) => console.log('⚠️ 서버 세션 정리 실패:', error))
+          .clearUserSession();
+        
+        console.log('✅ 자동 로그아웃 완료');
+      } catch (error) {
+        console.error('❌ 자동 로그아웃 오류:', error);
+      }
+    }
+
+    /**
+     * 🧹 로컬 세션 데이터 정리
+     */
+    function clearLocalSession() {
+      try {
+        // 브라우저 저장소 정리
+        localStorage.removeItem('userSession');
+        localStorage.removeItem('currentSessionId');
+        localStorage.removeItem('sessionStartTime');
+        localStorage.removeItem('sessionClosed');
+        localStorage.removeItem('logoutTime');
+        sessionStorage.clear();
+        
+        // 쿠키 정리 (있다면)
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        
+        console.log('🧹 로컬 세션 데이터 정리 완료');
+      } catch (error) {
+        console.error('❌ 로컬 세션 정리 오류:', error);
+      }
+    }
+
+
     
 
     
@@ -3914,7 +4031,7 @@
     }
     
     /**
-     * 🚪 로그아웃
+     * 🚪 로그아웃 (간소화된 버전)
      */
     async function logout() {
       if (confirm('정말 로그아웃하시겠습니까?')) {
@@ -3927,6 +4044,9 @@
           if (result && result.success !== false) {
             // 성공 메시지 표시
             showNotification('로그아웃되었습니다. 로그인 페이지로 이동합니다.', 'success');
+            
+            // 로컬 세션 데이터 정리
+            clearLocalSession();
             
             // 서버에서 로그인 페이지 HTML을 직접 가져와서 교체
             try {

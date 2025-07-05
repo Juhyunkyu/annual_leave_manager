@@ -11,7 +11,7 @@ const SHEET_ID = "1ClLTOiDo-MHRDsS81AFRzeZ84x0e95Ce_p_lkPqFCiw"; // 구글시트
 const WEB_APP_URL = "YOUR_WEB_APP_URL_HERE"; // 웹앱 배포 후 URL을 여기에 입력하세요
 
 /**
- * 🚀 웹앱 진입점 - 로그인 상태에 따라 화면 분기
+ * 🚀 웹앱 진입점 - 로그인 상태에 따라 화면 분기 (세션 만료 체크 추가)
  */
 function doGet(e) {
   try {
@@ -22,10 +22,30 @@ function doGet(e) {
       return showLoginPage();
     }
 
-    // 세션 확인
+    // 세션 확인 및 만료 체크
     const session = getValidSession();
 
     if (session && (session.empId || session.adminId)) {
+      // 🔍 세션 만료 시간 체크 (테스트: 5분 = 300초)
+      const sessionAge = (Date.now() - session.loginTime) / 1000;
+      const maxSessionAge = 300; // 5분 (테스트용)
+
+      if (sessionAge > maxSessionAge) {
+        console.log(
+          `🔒 세션 만료 (${Math.round(sessionAge)}초 경과) - 강제 로그아웃`
+        );
+        clearAllSessions();
+        clearSession();
+
+        // 만료 메시지와 함께 로그인 페이지 표시
+        const template = HtmlService.createTemplateFromFile("login");
+        template.expiredMessage = "세션이 만료되었습니다. 다시 로그인해주세요.";
+        return template
+          .evaluate()
+          .setTitle("세션 만료 - 연차관리 시스템")
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+      }
+
       // 로그인된 사용자 - 메인 화면 표시
       let userDetails = null;
       if (session.userType === "admin") {
@@ -2085,6 +2105,104 @@ function moveEmployeeDepartment(moveData) {
     return {
       success: false,
       error: "부서 이동 중 오류가 발생했습니다: " + error.message,
+    };
+  }
+}
+
+/**
+ * 🔒 사용자 세션 정리 (자동 로그아웃용)
+ */
+function clearUserSession() {
+  try {
+    console.log("🔒 서버 세션 정리 시작...");
+
+    // 현재 세션 정보 가져오기
+    const session = getValidSession();
+    let userInfo = "알 수 없음";
+
+    if (session) {
+      if (session.userType === "admin") {
+        userInfo = `관리자 ${session.adminId}`;
+      } else {
+        userInfo = `직원 ${session.empId}`;
+      }
+    }
+
+    // 세션 정리 (기존 clearSession 함수 사용)
+    clearSession();
+
+    console.log(`🔒 사용자 ${userInfo}의 세션 정리 완료`);
+
+    return {
+      success: true,
+      message: "세션이 정리되었습니다.",
+      userInfo: userInfo,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("❌ 세션 정리 오류:", error);
+    return {
+      success: false,
+      message: "세션 정리 중 오류가 발생했습니다.",
+      error: error.toString(),
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * 🔍 세션 유효성 체크 (주기적 체크용)
+ */
+function checkSessionValidity() {
+  try {
+    console.log("🔍 세션 유효성 체크 시작...");
+
+    // 현재 세션 가져오기
+    const session = getValidSession();
+
+    if (!session) {
+      console.log("⚠️ 세션 없음 - 무효");
+      return {
+        valid: false,
+        reason: "NO_SESSION",
+        message: "세션이 존재하지 않습니다.",
+      };
+    }
+
+    // 세션 만료 시간 체크 (테스트: 5분 = 300초)
+    const sessionAge = (Date.now() - session.loginTime) / 1000;
+    const maxSessionAge = 300; // 5분 (테스트용)
+
+    if (sessionAge > maxSessionAge) {
+      console.log(`⚠️ 세션 만료 (${Math.round(sessionAge)}초 경과)`);
+
+      // 만료된 세션 정리
+      clearSession();
+
+      return {
+        valid: false,
+        reason: "EXPIRED",
+        message: "세션이 만료되었습니다.",
+        sessionAge: Math.round(sessionAge),
+        maxAge: maxSessionAge,
+      };
+    }
+
+    console.log("✅ 세션 유효");
+    return {
+      valid: true,
+      sessionAge: Math.round(sessionAge),
+      maxAge: maxSessionAge,
+      userType: session.userType,
+      userId: session.empId || session.adminId,
+    };
+  } catch (error) {
+    console.error("❌ 세션 유효성 체크 오류:", error);
+    return {
+      valid: false,
+      reason: "ERROR",
+      message: "세션 체크 중 오류가 발생했습니다.",
+      error: error.toString(),
     };
   }
 }
