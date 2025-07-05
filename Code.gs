@@ -1381,7 +1381,7 @@ function testEmployeeData() {
 }
 
 /**
- * 🔧 웹앱용 getAllEmployees 래퍼 함수 (날짜 직렬화 처리)
+ * 🔧 웹앱용 getAllEmployees 래퍼 함수 (날짜 직렬화 처리 + 최신순 정렬)
  */
 function getEmployeesForWeb() {
   try {
@@ -1408,7 +1408,14 @@ function getEmployeesForWeb() {
       passwordHash: emp.passwordHash,
     }));
 
-    console.log("직렬화된 결과:", serializedResult);
+    // 최신 직원이 맨 위에 오도록 사번 기준으로 역순 정렬 (사번이 클수록 최신)
+    serializedResult.sort((a, b) => {
+      const empIdA = parseInt(a.empId) || 0;
+      const empIdB = parseInt(b.empId) || 0;
+      return empIdB - empIdA; // 내림차순 정렬
+    });
+
+    console.log("최신순 정렬된 결과:", serializedResult);
     return serializedResult;
   } catch (error) {
     console.error("getEmployeesForWeb 오류:", error);

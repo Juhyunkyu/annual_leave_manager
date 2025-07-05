@@ -1028,7 +1028,27 @@
       </div>
       
       <div class="table-container" style="margin-top: 3rem;">
-        <h3>📋 직원 목록</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8f9fa; border-bottom: 1px solid #eee;">
+          <h3 style="margin: 0;">📋 직원 목록</h3>
+          <div style="display: flex; gap: 1rem; align-items: center;">
+            <input 
+              type="text" 
+              id="employeeSearchInput" 
+              placeholder="🔍 이름, 이메일, 부서로 검색..." 
+              style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 250px;"
+              onkeyup="searchEmployees()"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();searchEmployees();}"
+            />
+            <button 
+              type="button" 
+              class="btn btn-secondary" 
+              onclick="clearEmployeeSearch()"
+              style="padding: 0.5rem 1rem; font-size: 0.9rem;"
+            >
+              🔄 초기화
+            </button>
+          </div>
+        </div>
         <table class="table">
           <thead>
             <tr>
@@ -1208,6 +1228,7 @@
   <script>
     // 📚 전역 변수 (숨겨진 HTML 요소에서 가져옴)
     var currentUser = {};
+    var allEmployees = []; // 전역 직원 목록 저장
     
     // 안전한 사용자 정보 로드
     try {
@@ -2122,6 +2143,9 @@
         const departments = await callServerFunction('getAllDepartments');
         console.log('✅ getAllDepartments 결과:', departments);
         
+        // 전역 직원 목록 저장
+        allEmployees = employees || [];
+        
         // 부서 선택 옵션 업데이트
         const deptSelect = document.getElementById('empDept');
         if (deptSelect) {
@@ -2133,7 +2157,7 @@
         
         // 직원 목록 표시
         console.log('📋 직원 목록 표시 중...');
-        displayEmployeeList(employees);
+        displayEmployeeList(allEmployees);
         console.log('✅ 직원 관리 페이지 로드 완료');
         
       } catch (error) {
@@ -2180,6 +2204,51 @@
     }
 
     /**
+     * 🔍 직원 검색 기능 (개선된 버전)
+     */
+    function searchEmployees() {
+      const searchTerm = document.getElementById('employeeSearchInput').value.toLowerCase().trim();
+      
+      if (!searchTerm) {
+        // 검색어가 없으면 전체 목록 표시
+        displayEmployeeList(allEmployees);
+        return;
+      }
+      
+      // 검색어에 맞는 직원 필터링
+      const filteredEmployees = allEmployees.filter(emp => {
+        const empId = emp.empId.toLowerCase();
+        const name = emp.name.toLowerCase();
+        const email = emp.email.toLowerCase();
+        const deptName = (emp.deptName || '').toLowerCase();
+        const position = (emp.position || '').toLowerCase();
+        
+        return empId.includes(searchTerm) || 
+               name.includes(searchTerm) || 
+               email.includes(searchTerm) || 
+               deptName.includes(searchTerm) || 
+               position.includes(searchTerm);
+      });
+      
+      // 필터링된 결과 표시
+      displayEmployeeList(filteredEmployees);
+      
+      // 검색 결과 메시지 표시
+      if (filteredEmployees.length === 0) {
+        const tableBody = document.getElementById('employeeListTable');
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666;">🔍 검색 결과가 없습니다.</td></tr>';
+      }
+    }
+
+    /**
+     * 🔄 직원 검색 초기화
+     */
+    function clearEmployeeSearch() {
+      document.getElementById('employeeSearchInput').value = '';
+      displayEmployeeList(allEmployees); // 전체 목록 표시
+    }
+
+    /**
      * 👥 직원 추가
      */
     async function addEmployee(event) {
@@ -2213,7 +2282,13 @@
           alert(successMessage);
           showNotification('직원 추가 완료 (사번: ' + result.empId + ')', 'success');
           document.getElementById('addEmployeeForm').reset();
-          loadEmployeeManagement(); // 목록 새로고침
+          
+          // 직원 목록 새로고침 (최신 직원이 맨 위에 표시됨)
+          await refreshEmployeeList();
+          
+          // 검색창 초기화
+          clearEmployeeSearch();
+          
         } else {
           showNotification('직원 추가 실패: ' + result.error, 'error');
         }
@@ -2222,6 +2297,27 @@
         showNotification('직원 추가 중 오류가 발생했습니다.', 'error');
       } finally {
         showLoading(false);
+      }
+    }
+
+    /**
+     * 🔄 직원 목록 새로고침 (최적화된 버전)
+     */
+    async function refreshEmployeeList() {
+      try {
+        console.log('🔄 직원 목록 새로고침 중...');
+        const employees = await callServerFunction('getEmployeesForWeb');
+        
+        // 전역 변수 업데이트
+        allEmployees = employees || [];
+        
+        // 목록 다시 표시 (최신 직원이 맨 위에 옴)
+        displayEmployeeList(allEmployees);
+        
+        console.log('✅ 직원 목록 새로고침 완료 (총 ' + allEmployees.length + '명)');
+      } catch (error) {
+        console.error('❌ 직원 목록 새로고침 오류:', error);
+        showNotification('직원 목록 새로고침 중 오류가 발생했습니다.', 'error');
       }
     }
 
