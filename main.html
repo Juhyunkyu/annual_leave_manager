@@ -854,173 +854,147 @@
       width: 100%;
       height: 100%;
       background-color: rgba(0, 0, 0, 0.5);
-      display: none;
+      display: flex;
       justify-content: center;
       align-items: center;
-      z-index: 2000;
-      animation: fadeIn 0.3s ease-out;
+      z-index: 1000;
     }
     
     .modal-container {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-      width: 90%;
-      max-width: 500px;
-      max-height: 90vh;
-      overflow-y: auto;
-      animation: slideIn 0.3s ease-out;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 80%;
+      max-width: 800px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
     }
     
     .modal-header {
-      padding: 1.5rem;
+      padding: 1rem;
       border-bottom: 1px solid #e9ecef;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     
-    .modal-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #333;
+    .modal-header h3 {
       margin: 0;
+      font-size: 1.25rem;
     }
     
-    .modal-close {
+    .close-button {
       background: none;
       border: none;
       font-size: 1.5rem;
       cursor: pointer;
-      padding: 0.5rem;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-    
-    .modal-close:hover {
-      background: #f8f9fa;
-      color: #dc3545;
-    }
-    
-    .modal-body {
-      padding: 1.5rem;
-    }
-    
-    .modal-footer {
-      padding: 1rem 1.5rem;
-      border-top: 1px solid #e9ecef;
-      display: flex;
-      justify-content: flex-end;
-      gap: 1rem;
-    }
-    
-    .form-row {
-      display: flex;
-      gap: 1rem;
-    }
-    
-    .form-col {
-      flex: 1;
-    }
-    
-    .form-group-modal {
-      margin-bottom: 1.5rem;
-    }
-    
-    .form-group-modal label {
-      display: block;
-      color: #333;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      font-size: 0.9rem;
-    }
-    
-    .form-group-modal input,
-    .form-group-modal select {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-    }
-    
-    .form-group-modal input:focus,
-    .form-group-modal select:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    
-    .form-group-modal input[readonly] {
-      background-color: #f8f9fa;
+      padding: 0;
       color: #6c757d;
     }
     
-    .checkbox-group {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 1rem;
+    .close-button:hover {
+      color: #343a40;
+    }
+    
+    .modal-body {
       padding: 1rem;
-      background: #fff3cd;
-      border: 1px solid #ffeaa7;
-      border-radius: 8px;
+      overflow-y: auto;
     }
     
-    .checkbox-group input[type="checkbox"] {
-      width: auto;
-      margin: 0;
+    .search-box {
+      margin-bottom: 1rem;
     }
     
-    .checkbox-group label {
-      color: #856404;
+    .search-box input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    
+    .employee-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+    
+    .employee-item {
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .employee-item:hover {
+      background-color: #f8f9fa;
+      border-color: #dee2e6;
+    }
+    
+    .employee-item.selected {
+      background-color: #e7f5ff;
+      border-color: #339af0;
+    }
+    
+    .employee-info {
+      flex: 1;
+    }
+    
+    .employee-name {
       font-weight: 600;
-      margin: 0;
+      margin-bottom: 0.25rem;
+    }
+    
+    .employee-position {
+      color: #6c757d;
+      font-size: 0.875rem;
+    }
+    
+    .employee-dept {
+      color: #495057;
+      font-size: 0.875rem;
+      padding-left: 1rem;
+      border-left: 1px solid #dee2e6;
+    }
+    
+    .modal-footer {
+      padding: 1rem;
+      border-top: 1px solid #e9ecef;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
     }
     
     .btn-modal {
-      padding: 0.75rem 1.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
       border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
     }
     
     .btn-modal-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-color: #339af0;
       color: white;
     }
     
     .btn-modal-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+      background-color: #228be6;
     }
     
     .btn-modal-secondary {
-      background: #6c757d;
-      color: white;
+      background-color: #e9ecef;
+      color: #495057;
     }
     
     .btn-modal-secondary:hover {
-      background: #5a6268;
-    }
-    
-    .btn-modal:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
+      background-color: #dee2e6;
     }
     
     @keyframes fadeIn {
@@ -3302,8 +3276,18 @@
      */
     window.addEventListener('load', function() {
       try {
+        // 사용자 정보 로드
+        currentUser = {
+          empId: document.getElementById('userEmpId')?.textContent || 'UNKNOWN',
+          name: document.getElementById('userName')?.textContent || '사용자',
+          email: document.getElementById('userEmail')?.textContent || 'unknown@company.com',
+          position: document.getElementById('userPosition')?.textContent || '직원',
+          isAdmin: document.getElementById('userIsAdmin')?.textContent === 'true',
+          department: document.getElementById('userDepartment')?.textContent || '미지정'
+        };
+
         // 사용자 정보 유효성 검사
-        if (currentUser.empId === 'ERROR' || currentUser.empId === 'UNKNOWN') {
+        if (currentUser.empId === 'UNKNOWN') {
           showErrorMessage('사용자 정보를 불러올 수 없습니다. 페이지를 새로고침하거나 다시 로그인해주세요.');
           return;
         }
@@ -3311,11 +3295,11 @@
         // 기본 UI 초기화
         initializeUI();
         
-        // 대시보드 데이터 로드 (비동기)
-        setTimeout(() => {
-          loadDashboardData();
-          updateNotificationBadge();
-        }, 100);
+        // 대시보드 페이지 표시
+        showPage('dashboard');
+        
+        // 대시보드 데이터 로드
+        loadDashboardData();
       } catch (error) {
         console.error('❌ 시스템 초기화 오류:', error);
         showErrorMessage('시스템 초기화 중 오류가 발생했습니다.');
@@ -3503,35 +3487,53 @@
      * 📄 페이지별 데이터 로드
      */
     function loadPageData(pageId) {
-      switch (pageId) {
-        case 'dashboard':
-          loadDashboardData();
-          break;
-        case 'myRequests':
-          loadMyRequests();
-          break;
-        case 'approvals':
-          loadApprovals();
-          break;
-        case 'myInfo':
-          loadMyInfo();
-          break;
-        case 'leaveRequest':
-          initializeLeaveRequestForm();
-          break;
-        case 'employeeManagement':
-        case 'userManagement': // 호환성을 위한 별칭
-          loadEmployeeManagement();
-          break;
-        case 'departmentManagement':
-          loadDepartmentManagement();
-          break;
-        case 'systemSettings':
-          loadSystemSettings();
-          break;
-        case 'statistics':
-          loadStatistics();
-          break;
+      try {
+        // 페이지 전환 전 모든 모달 닫기
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(modal => {
+          modal.style.display = 'none';
+        });
+
+        switch (pageId) {
+          case 'dashboard':
+            loadDashboardData();
+            break;
+          case 'myRequests':
+            loadMyRequests();
+            break;
+          case 'approvals':
+            loadApprovals();
+            break;
+          case 'myInfo':
+            loadMyInfo();
+            break;
+          case 'leaveRequest':
+            initializeLeaveRequestForm();
+            break;
+          case 'employeeManagement':
+            if (currentUser.isAdmin) {
+              loadEmployeeManagement();
+            }
+            break;
+          case 'departmentManagement':
+            if (currentUser.isAdmin) {
+              loadDepartmentManagement();
+            }
+            break;
+          case 'systemSettings':
+            if (currentUser.isAdmin) {
+              loadSystemSettings();
+            }
+            break;
+          case 'statistics':
+            loadStatistics();
+            break;
+          default:
+            console.warn('⚠️ 알 수 없는 페이지:', pageId);
+        }
+      } catch (error) {
+        console.error('❌ 페이지 데이터 로드 오류:', error);
+        showErrorMessage('페이지 데이터를 불러올 수 없습니다.');
       }
     }
     
@@ -3676,6 +3678,9 @@
      */
     async function openApproverModal() {
       try {
+        // 로딩 표시 시작
+        showLoading(true);
+
         // 직원 목록 로드
         const employees = await callServerFunction('getEmployeesForWeb');
         if (!employees || !Array.isArray(employees)) {
@@ -3688,76 +3693,57 @@
           throw new Error('사용자 정보를 찾을 수 없습니다.');
         }
 
-        // 직원 목록 HTML 생성
-        const employeeListHtml = employees
-          .filter(emp => emp && emp.empId && emp.empId !== currentUserId)
-          .map(emp => `
-            <div class="employee-item ${selectedApprovers.some(a => a.empId === emp.empId) ? 'selected' : ''}"
-                 onclick="toggleLeaveApprover(${JSON.stringify(emp).replace(/"/g, '&quot;')})">
-              <div class="employee-info">
-                <div class="employee-name">${emp.name || '이름 없음'}</div>
-                <div class="employee-position">${emp.position || '직급 미지정'}</div>
-              </div>
-              <div class="employee-dept">${emp.department || '부서 미지정'}</div>
-            </div>
-          `).join('');
-        
-        // 모달 HTML 생성
+        // 모달 생성 및 스타일 적용
         const modalHtml = `
-          <div class="modal-overlay" id="leaveApproverModal" style="display: block;">
-            <div class="modal-container">
+          <div class="modal-overlay" id="approverModal">
+            <div class="modal-container" style="width: 80%; max-width: 800px; max-height: 80vh; margin: 10vh auto;">
               <div class="modal-header">
-                <h3 class="modal-title">👥 결재자 선택</h3>
-                <button class="modal-close" onclick="closeLeaveApproverModal()">×</button>
+                <h3>결재자/협조자 선택</h3>
+                <button class="close-button" onclick="closeApproverModal()">×</button>
               </div>
-              
-              <div class="modal-body">
-                <div class="search-box" style="margin-bottom: 1rem;">
-                  <input type="text" id="leaveApproverSearch" 
-                         placeholder="이름 또는 부서로 검색" 
-                         onkeyup="filterLeaveApproverList(this.value)">
+              <div class="modal-body" style="max-height: calc(80vh - 180px); overflow-y: auto;">
+                <div class="search-box">
+                  <input type="text" id="employeeSearchInput" placeholder="이름 또는 부서로 검색..." 
+                         onkeyup="filterEmployees(this.value)">
                 </div>
-
-                <div class="info-banner" style="margin-bottom: 1rem;">
-                  <div class="info-icon">ℹ️</div>
-                  <div class="info-content">
-                    <strong>결재자 선택 안내</strong>
-                    <ul class="info-list">
-                      <li>결재자는 최소 1명 이상 선택해야 합니다</li>
-                      <li>결재는 선택된 순서대로 진행됩니다</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div id="leaveApproverList" class="employee-list">
-                  ${employeeListHtml}
+                <div id="employeeList" class="employee-list">
+                  ${employees
+                    .filter(emp => emp && emp.empId && emp.empId !== currentUserId)
+                    .map(emp => `
+                      <div class="employee-item ${selectedApprovers.some(a => a.empId === emp.empId) ? 'selected' : ''}"
+                           data-employee='${JSON.stringify(emp)}'
+                           onclick="toggleLeaveApprover(this.dataset.employee)">
+                        <div class="employee-info">
+                          <div class="employee-name">${emp.name || '이름 없음'}</div>
+                          <div class="employee-position">${emp.position || '직급 미지정'}</div>
+                        </div>
+                        <div class="employee-dept">${emp.deptName || '부서 미지정'}</div>
+                      </div>
+                    `).join('')}
                 </div>
               </div>
-              
               <div class="modal-footer">
-                <button type="button" class="btn-modal btn-modal-secondary" 
-                        onclick="closeLeaveApproverModal()">취소</button>
-                <button type="button" class="btn-modal btn-modal-primary" 
-                        onclick="confirmLeaveApproverSelection()">선택 완료</button>
+                <button class="btn-modal btn-modal-secondary" onclick="closeApproverModal()">취소</button>
+                <button class="btn-modal btn-modal-primary" onclick="confirmApprovers()">확인</button>
               </div>
             </div>
           </div>
         `;
-        
+
         // 기존 모달이 있다면 제거
-        const existingModal = document.getElementById('leaveApproverModal');
+        const existingModal = document.getElementById('approverModal');
         if (existingModal) {
           existingModal.remove();
         }
-        
+
         // 새 모달 추가
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // 검색창에 포커스
-        document.getElementById('leaveApproverSearch').focus();
+
       } catch (error) {
-        console.error('결재자 목록 로드 오류:', error);
-        showErrorMessage('결재자 목록을 불러오는 중 오류가 발생했습니다.');
+        console.error('결재자 모달 오류:', error);
+        showNotification('결재자 선택 모달을 열 수 없습니다.', 'error');
+      } finally {
+        showLoading(false);
       }
     }
     
@@ -3878,16 +3864,18 @@
     /**
      * ✅ 결재자 토글 선택
      */
-    function toggleLeaveApprover(employee) {
-      const index = selectedApprovers.findIndex(a => a.empId === employee.empId);
+    function toggleLeaveApprover(empData) {
+      const emp = typeof empData === 'string' ? JSON.parse(empData) : empData;
+      const index = selectedApprovers.findIndex(a => a.empId === emp.empId);
+      
       if (index === -1) {
-        selectedApprovers.push(employee);
+        selectedApprovers.push(emp);
       } else {
         selectedApprovers.splice(index, 1);
       }
       
-      // 선택 상태 업데이트
-      const employeeItem = document.querySelector(`#leaveApproverList .employee-item[onclick*="${employee.empId}"]`);
+      // 선택 상태 UI 업데이트
+      const employeeItem = document.querySelector(`.employee-item[data-employee='${JSON.stringify(emp)}']`);
       if (employeeItem) {
         employeeItem.classList.toggle('selected');
       }
@@ -5986,6 +5974,63 @@
       }
     };
 
+    // 직원 필터링 함수
+    function filterEmployees(searchTerm) {
+      const employeeList = document.getElementById('employeeList');
+      const items = employeeList.getElementsByClassName('employee-item');
+      
+      searchTerm = searchTerm.toLowerCase();
+      
+      for (const item of items) {
+        const name = item.querySelector('.employee-name').textContent.toLowerCase();
+        const dept = item.querySelector('.employee-dept').textContent.toLowerCase();
+        const position = item.querySelector('.employee-position').textContent.toLowerCase();
+        
+        if (name.includes(searchTerm) || dept.includes(searchTerm) || position.includes(searchTerm)) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      }
+    }
+
+    // 결재자 선택 관련 함수들
+    function toggleLeaveApprover(empData) {
+      const emp = typeof empData === 'string' ? JSON.parse(empData) : empData;
+      const index = selectedApprovers.findIndex(a => a.empId === emp.empId);
+      
+      if (index === -1) {
+        selectedApprovers.push(emp);
+      } else {
+        selectedApprovers.splice(index, 1);
+      }
+      
+      // 선택 상태 UI 업데이트
+      const employeeItem = document.querySelector(`.employee-item[data-employee='${JSON.stringify(emp)}']`);
+      if (employeeItem) {
+        employeeItem.classList.toggle('selected');
+      }
+    }
+
+    function closeApproverModal() {
+      const modal = document.getElementById('approverModal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+
+    function confirmApprovers() {
+      if (selectedApprovers.length === 0) {
+        showNotification('결재자를 한 명 이상 선택해주세요.', 'error');
+        return;
+      }
+      
+      // 선택된 결재자 목록 업데이트
+      updateSelectedApprovers();
+      
+      // 모달 닫기
+      closeApproverModal();
+    }
   </script>
 </body>
 </html> 
