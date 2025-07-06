@@ -3752,6 +3752,9 @@
      */
     async function openCollaboratorModal() {
       try {
+        // 로딩 표시 시작
+        showLoading(true);
+
         // 직원 목록 로드
         const employees = await callServerFunction('getEmployeesForWeb');
         if (!employees || !Array.isArray(employees)) {
@@ -3764,79 +3767,60 @@
           throw new Error('사용자 정보를 찾을 수 없습니다.');
         }
 
-        // 직원 목록 HTML 생성
-        const employeeListHtml = employees
-          .filter(emp => emp && emp.empId && emp.empId !== currentUserId)
-          .map(emp => `
-            <div class="employee-item ${selectedCollaborators.some(c => c.empId === emp.empId) ? 'selected' : ''}"
-                 onclick="toggleLeaveCollaborator(${JSON.stringify(emp).replace(/"/g, '&quot;')})">
-              <div class="employee-info">
-                <div class="employee-name">${emp.name || '이름 없음'}</div>
-                <div class="employee-position">${emp.position || '직급 미지정'}</div>
-              </div>
-              <div class="employee-dept">${emp.department || '부서 미지정'}</div>
-            </div>
-          `).join('');
-        
-        // 모달 HTML 생성
+        // 모달 생성 및 스타일 적용
         const modalHtml = `
-          <div class="modal-overlay" id="leaveCollaboratorModal" style="display: block;">
-            <div class="modal-container">
+          <div class="modal-overlay" id="collaboratorModal">
+            <div class="modal-container" style="width: 80%; max-width: 800px; max-height: 80vh; margin: 10vh auto;">
               <div class="modal-header">
-                <h3 class="modal-title">🤝 협조자 선택</h3>
-                <button class="modal-close" onclick="closeLeaveCollaboratorModal()">×</button>
+                <h3>협조자 선택</h3>
+                <button class="close-button" onclick="closeCollaboratorModal()">×</button>
               </div>
-              
-              <div class="modal-body">
-                <div class="search-box" style="margin-bottom: 1rem;">
-                  <input type="text" id="leaveCollaboratorSearch" 
-                         placeholder="이름 또는 부서로 검색" 
-                         onkeyup="filterLeaveCollaboratorList(this.value)">
+              <div class="modal-body" style="max-height: calc(80vh - 180px); overflow-y: auto;">
+                <div class="search-box">
+                  <input type="text" id="employeeSearchInput" placeholder="이름 또는 부서로 검색..." 
+                         onkeyup="filterEmployees(this.value)">
                 </div>
-
-                <div class="info-banner" style="margin-bottom: 1rem;">
-                  <div class="info-icon">ℹ️</div>
-                  <div class="info-content">
-                    <strong>협조자 선택 안내</strong>
-                    <ul class="info-list">
-                      <li>협조자는 선택사항입니다</li>
-                      <li>협조자는 연차 신청을 참조할 수 있습니다</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div id="leaveCollaboratorList" class="employee-list">
-                  ${employeeListHtml}
+                <div id="employeeList" class="employee-list">
+                  ${employees
+                    .filter(emp => emp && emp.empId && emp.empId !== currentUserId)
+                    .map(emp => `
+                      <div class="employee-item ${selectedCollaborators.some(c => c.empId === emp.empId) ? 'selected' : ''}"
+                           data-employee='${JSON.stringify(emp)}'
+                           onclick="toggleLeaveCollaborator(this.dataset.employee)">
+                        <div class="employee-info">
+                          <div class="employee-name">${emp.name || '이름 없음'}</div>
+                          <div class="employee-position">${emp.position || '직급 미지정'}</div>
+                        </div>
+                        <div class="employee-dept">${emp.deptName || '부서 미지정'}</div>
+                      </div>
+                    `).join('')}
                 </div>
               </div>
-              
               <div class="modal-footer">
-                <button type="button" class="btn-modal btn-modal-secondary" 
-                        onclick="closeLeaveCollaboratorModal()">취소</button>
-                <button type="button" class="btn-modal btn-modal-primary" 
-                        onclick="confirmLeaveCollaboratorSelection()">선택 완료</button>
+                <button class="btn-modal btn-modal-secondary" onclick="closeCollaboratorModal()">취소</button>
+                <button class="btn-modal btn-modal-primary" onclick="confirmCollaborators()">확인</button>
               </div>
             </div>
           </div>
         `;
-        
+
         // 기존 모달이 있다면 제거
-        const existingModal = document.getElementById('leaveCollaboratorModal');
+        const existingModal = document.getElementById('collaboratorModal');
         if (existingModal) {
           existingModal.remove();
         }
-        
+
         // 새 모달 추가
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // 검색창에 포커스
-        document.getElementById('leaveCollaboratorSearch').focus();
+
       } catch (error) {
-        console.error('협조자 목록 로드 오류:', error);
-        showErrorMessage('협조자 목록을 불러오는 중 오류가 발생했습니다.');
+        console.error('협조자 모달 오류:', error);
+        showNotification('협조자 선택 모달을 열 수 없습니다.', 'error');
+      } finally {
+        showLoading(false);
       }
     }
-
+    
     /**
      * 🔍 결재자 목록 필터링
      */
@@ -3848,7 +3832,7 @@
         item.style.display = text.includes(search) ? '' : 'none';
       });
     }
-
+    
     /**
      * 🔍 협조자 목록 필터링
      */
@@ -3860,7 +3844,7 @@
         item.style.display = text.includes(search) ? '' : 'none';
       });
     }
-
+    
     /**
      * ✅ 결재자 토글 선택
      */
@@ -3880,45 +3864,47 @@
         employeeItem.classList.toggle('selected');
       }
     }
-
+    
     /**
      * ✅ 협조자 토글 선택
      */
-    function toggleLeaveCollaborator(employee) {
-      const index = selectedCollaborators.findIndex(c => c.empId === employee.empId);
+    function toggleLeaveCollaborator(empData) {
+      const emp = typeof empData === 'string' ? JSON.parse(empData) : empData;
+      const index = selectedCollaborators.findIndex(c => c.empId === emp.empId);
+      
       if (index === -1) {
-        selectedCollaborators.push(employee);
+        selectedCollaborators.push(emp);
       } else {
         selectedCollaborators.splice(index, 1);
       }
       
-      // 선택 상태 업데이트
-      const employeeItem = document.querySelector(`#leaveCollaboratorList .employee-item[onclick*="${employee.empId}"]`);
+      // 선택 상태 UI 업데이트
+      const employeeItem = document.querySelector(`.employee-item[data-employee='${JSON.stringify(emp)}']`);
       if (employeeItem) {
         employeeItem.classList.toggle('selected');
       }
     }
-
+    
     /**
      * ❌ 결재자 선택 모달 닫기
      */
     function closeLeaveApproverModal() {
-      const modal = document.getElementById('leaveApproverModal');
+      const modal = document.getElementById('approverModal');
       if (modal) {
         modal.remove();
       }
     }
-
+    
     /**
      * ❌ 협조자 선택 모달 닫기
      */
-    function closeLeaveCollaboratorModal() {
-      const modal = document.getElementById('leaveCollaboratorModal');
+    function closeCollaboratorModal() {
+      const modal = document.getElementById('collaboratorModal');
       if (modal) {
         modal.remove();
       }
     }
-
+    
     /**
      * ✅ 결재자 선택 완료
      */
@@ -3930,13 +3916,13 @@
       updateSelectedApprovers();
       closeLeaveApproverModal();
     }
-
+    
     /**
      * ✅ 협조자 선택 완료
      */
     function confirmLeaveCollaboratorSelection() {
       updateSelectedCollaborators();
-      closeLeaveCollaboratorModal();
+      closeCollaboratorModal();
     }
     
     /**
@@ -6030,6 +6016,118 @@
       
       // 모달 닫기
       closeApproverModal();
+    }
+
+    /**
+     * 🤝 협조자 선택 모달 열기
+     */
+    async function openCollaboratorModal() {
+      try {
+        // 로딩 표시 시작
+        showLoading(true);
+
+        // 직원 목록 로드
+        const employees = await callServerFunction('getEmployeesForWeb');
+        if (!employees || !Array.isArray(employees)) {
+          throw new Error('직원 목록을 불러올 수 없습니다.');
+        }
+
+        // 현재 사용자 ID
+        const currentUserId = document.getElementById('userEmpId')?.textContent;
+        if (!currentUserId) {
+          throw new Error('사용자 정보를 찾을 수 없습니다.');
+        }
+
+        // 모달 생성 및 스타일 적용
+        const modalHtml = `
+          <div class="modal-overlay" id="collaboratorModal">
+            <div class="modal-container" style="width: 80%; max-width: 800px; max-height: 80vh; margin: 10vh auto;">
+              <div class="modal-header">
+                <h3>협조자 선택</h3>
+                <button class="close-button" onclick="closeCollaboratorModal()">×</button>
+              </div>
+              <div class="modal-body" style="max-height: calc(80vh - 180px); overflow-y: auto;">
+                <div class="search-box">
+                  <input type="text" id="employeeSearchInput" placeholder="이름 또는 부서로 검색..." 
+                         onkeyup="filterEmployees(this.value)">
+                </div>
+                <div id="employeeList" class="employee-list">
+                  ${employees
+                    .filter(emp => emp && emp.empId && emp.empId !== currentUserId)
+                    .map(emp => `
+                      <div class="employee-item ${selectedCollaborators.some(c => c.empId === emp.empId) ? 'selected' : ''}"
+                           data-employee='${JSON.stringify(emp)}'
+                           onclick="toggleLeaveCollaborator(this.dataset.employee)">
+                        <div class="employee-info">
+                          <div class="employee-name">${emp.name || '이름 없음'}</div>
+                          <div class="employee-position">${emp.position || '직급 미지정'}</div>
+                        </div>
+                        <div class="employee-dept">${emp.deptName || '부서 미지정'}</div>
+                      </div>
+                    `).join('')}
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn-modal btn-modal-secondary" onclick="closeCollaboratorModal()">취소</button>
+                <button class="btn-modal btn-modal-primary" onclick="confirmCollaborators()">확인</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // 기존 모달이 있다면 제거
+        const existingModal = document.getElementById('collaboratorModal');
+        if (existingModal) {
+          existingModal.remove();
+        }
+
+        // 새 모달 추가
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      } catch (error) {
+        console.error('협조자 모달 오류:', error);
+        showNotification('협조자 선택 모달을 열 수 없습니다.', 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    /**
+     * ✅ 협조자 토글 선택
+     */
+    function toggleLeaveCollaborator(empData) {
+      const emp = typeof empData === 'string' ? JSON.parse(empData) : empData;
+      const index = selectedCollaborators.findIndex(c => c.empId === emp.empId);
+      
+      if (index === -1) {
+        selectedCollaborators.push(emp);
+      } else {
+        selectedCollaborators.splice(index, 1);
+      }
+      
+      // 선택 상태 UI 업데이트
+      const employeeItem = document.querySelector(`.employee-item[data-employee='${JSON.stringify(emp)}']`);
+      if (employeeItem) {
+        employeeItem.classList.toggle('selected');
+      }
+    }
+
+    /**
+     * ❌ 협조자 선택 모달 닫기
+     */
+    function closeCollaboratorModal() {
+      const modal = document.getElementById('collaboratorModal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+
+    /**
+     * ✅ 협조자 선택 완료
+     */
+    function confirmCollaborators() {
+      updateSelectedCollaborators();
+      closeCollaboratorModal();
     }
   </script>
 </body>
