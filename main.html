@@ -2126,6 +2126,75 @@
     .status-good { color: #20c997; font-weight: 600; }
     .status-warning { color: #ffc107; font-weight: 600; }
     .status-danger { color: #dc3545; font-weight: 600; }
+
+    /* 직원 선택 모달 스타일 */
+    .employee-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 8px;
+    }
+
+    .employee-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .employee-item:last-child {
+      border-bottom: none;
+    }
+
+    .employee-item:hover {
+      background-color: #f8f9fa;
+    }
+
+    .employee-item.selected {
+      background-color: #e3f2fd;
+      border-left: 4px solid #1976d2;
+    }
+
+    .employee-info {
+      flex: 1;
+    }
+
+    .employee-name {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.25rem;
+    }
+
+    .employee-position {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .employee-dept {
+      font-size: 0.85rem;
+      color: #666;
+      padding: 0.25rem 0.5rem;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .search-box input:focus {
+      border-color: #1976d2;
+      box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+      outline: none;
+    }
     
     /* 모바일 반응형 - 통계 페이지 */
     @media (max-width: 768px) {
@@ -3597,18 +3666,289 @@
       }
     }
     
+    // 연차 신청용 결재자/협조자 선택 변수
+    let leaveApprovers = []; // 선택된 결재자 목록
+    let leaveCollaborators = []; // 선택된 협조자 목록
+    let leaveEmployeeList = []; // 전체 직원 목록
+    
     /**
      * 👥 결재자 선택 모달 열기
      */
-    function openApproverModal() {
-      alert('결재자 선택 기능은 개발 중입니다.');
+    async function openApproverModal() {
+      try {
+        // 직원 목록 로드
+        const employees = await callServerFunction('getEmployeesForWeb');
+        if (!employees || !Array.isArray(employees)) {
+          throw new Error('직원 목록을 불러올 수 없습니다.');
+        }
+
+        // 현재 사용자 ID
+        const currentUserId = document.getElementById('userEmpId')?.textContent;
+        if (!currentUserId) {
+          throw new Error('사용자 정보를 찾을 수 없습니다.');
+        }
+
+        // 직원 목록 HTML 생성
+        const employeeListHtml = employees
+          .filter(emp => emp && emp.empId && emp.empId !== currentUserId)
+          .map(emp => `
+            <div class="employee-item ${selectedApprovers.some(a => a.empId === emp.empId) ? 'selected' : ''}"
+                 onclick="toggleLeaveApprover(${JSON.stringify(emp).replace(/"/g, '&quot;')})">
+              <div class="employee-info">
+                <div class="employee-name">${emp.name || '이름 없음'}</div>
+                <div class="employee-position">${emp.position || '직급 미지정'}</div>
+              </div>
+              <div class="employee-dept">${emp.department || '부서 미지정'}</div>
+            </div>
+          `).join('');
+        
+        // 모달 HTML 생성
+        const modalHtml = `
+          <div class="modal-overlay" id="leaveApproverModal" style="display: block;">
+            <div class="modal-container">
+              <div class="modal-header">
+                <h3 class="modal-title">👥 결재자 선택</h3>
+                <button class="modal-close" onclick="closeLeaveApproverModal()">×</button>
+              </div>
+              
+              <div class="modal-body">
+                <div class="search-box" style="margin-bottom: 1rem;">
+                  <input type="text" id="leaveApproverSearch" 
+                         placeholder="이름 또는 부서로 검색" 
+                         onkeyup="filterLeaveApproverList(this.value)">
+                </div>
+
+                <div class="info-banner" style="margin-bottom: 1rem;">
+                  <div class="info-icon">ℹ️</div>
+                  <div class="info-content">
+                    <strong>결재자 선택 안내</strong>
+                    <ul class="info-list">
+                      <li>결재자는 최소 1명 이상 선택해야 합니다</li>
+                      <li>결재는 선택된 순서대로 진행됩니다</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div id="leaveApproverList" class="employee-list">
+                  ${employeeListHtml}
+                </div>
+              </div>
+              
+              <div class="modal-footer">
+                <button type="button" class="btn-modal btn-modal-secondary" 
+                        onclick="closeLeaveApproverModal()">취소</button>
+                <button type="button" class="btn-modal btn-modal-primary" 
+                        onclick="confirmLeaveApproverSelection()">선택 완료</button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // 기존 모달이 있다면 제거
+        const existingModal = document.getElementById('leaveApproverModal');
+        if (existingModal) {
+          existingModal.remove();
+        }
+        
+        // 새 모달 추가
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // 검색창에 포커스
+        document.getElementById('leaveApproverSearch').focus();
+      } catch (error) {
+        console.error('결재자 목록 로드 오류:', error);
+        showErrorMessage('결재자 목록을 불러오는 중 오류가 발생했습니다.');
+      }
     }
     
     /**
      * 🤝 협조자 선택 모달 열기
      */
-    function openCollaboratorModal() {
-      alert('협조자 선택 기능은 개발 중입니다.');
+    async function openCollaboratorModal() {
+      try {
+        // 직원 목록 로드
+        const employees = await callServerFunction('getEmployeesForWeb');
+        if (!employees || !Array.isArray(employees)) {
+          throw new Error('직원 목록을 불러올 수 없습니다.');
+        }
+
+        // 현재 사용자 ID
+        const currentUserId = document.getElementById('userEmpId')?.textContent;
+        if (!currentUserId) {
+          throw new Error('사용자 정보를 찾을 수 없습니다.');
+        }
+
+        // 직원 목록 HTML 생성
+        const employeeListHtml = employees
+          .filter(emp => emp && emp.empId && emp.empId !== currentUserId)
+          .map(emp => `
+            <div class="employee-item ${selectedCollaborators.some(c => c.empId === emp.empId) ? 'selected' : ''}"
+                 onclick="toggleLeaveCollaborator(${JSON.stringify(emp).replace(/"/g, '&quot;')})">
+              <div class="employee-info">
+                <div class="employee-name">${emp.name || '이름 없음'}</div>
+                <div class="employee-position">${emp.position || '직급 미지정'}</div>
+              </div>
+              <div class="employee-dept">${emp.department || '부서 미지정'}</div>
+            </div>
+          `).join('');
+        
+        // 모달 HTML 생성
+        const modalHtml = `
+          <div class="modal-overlay" id="leaveCollaboratorModal" style="display: block;">
+            <div class="modal-container">
+              <div class="modal-header">
+                <h3 class="modal-title">🤝 협조자 선택</h3>
+                <button class="modal-close" onclick="closeLeaveCollaboratorModal()">×</button>
+              </div>
+              
+              <div class="modal-body">
+                <div class="search-box" style="margin-bottom: 1rem;">
+                  <input type="text" id="leaveCollaboratorSearch" 
+                         placeholder="이름 또는 부서로 검색" 
+                         onkeyup="filterLeaveCollaboratorList(this.value)">
+                </div>
+
+                <div class="info-banner" style="margin-bottom: 1rem;">
+                  <div class="info-icon">ℹ️</div>
+                  <div class="info-content">
+                    <strong>협조자 선택 안내</strong>
+                    <ul class="info-list">
+                      <li>협조자는 선택사항입니다</li>
+                      <li>협조자는 연차 신청을 참조할 수 있습니다</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div id="leaveCollaboratorList" class="employee-list">
+                  ${employeeListHtml}
+                </div>
+              </div>
+              
+              <div class="modal-footer">
+                <button type="button" class="btn-modal btn-modal-secondary" 
+                        onclick="closeLeaveCollaboratorModal()">취소</button>
+                <button type="button" class="btn-modal btn-modal-primary" 
+                        onclick="confirmLeaveCollaboratorSelection()">선택 완료</button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // 기존 모달이 있다면 제거
+        const existingModal = document.getElementById('leaveCollaboratorModal');
+        if (existingModal) {
+          existingModal.remove();
+        }
+        
+        // 새 모달 추가
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // 검색창에 포커스
+        document.getElementById('leaveCollaboratorSearch').focus();
+      } catch (error) {
+        console.error('협조자 목록 로드 오류:', error);
+        showErrorMessage('협조자 목록을 불러오는 중 오류가 발생했습니다.');
+      }
+    }
+
+    /**
+     * 🔍 결재자 목록 필터링
+     */
+    function filterLeaveApproverList(keyword) {
+      const employees = Array.from(document.querySelectorAll('#leaveApproverList .employee-item'));
+      employees.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        const search = keyword.toLowerCase();
+        item.style.display = text.includes(search) ? '' : 'none';
+      });
+    }
+
+    /**
+     * 🔍 협조자 목록 필터링
+     */
+    function filterLeaveCollaboratorList(keyword) {
+      const employees = Array.from(document.querySelectorAll('#leaveCollaboratorList .employee-item'));
+      employees.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        const search = keyword.toLowerCase();
+        item.style.display = text.includes(search) ? '' : 'none';
+      });
+    }
+
+    /**
+     * ✅ 결재자 토글 선택
+     */
+    function toggleLeaveApprover(employee) {
+      const index = selectedApprovers.findIndex(a => a.empId === employee.empId);
+      if (index === -1) {
+        selectedApprovers.push(employee);
+      } else {
+        selectedApprovers.splice(index, 1);
+      }
+      
+      // 선택 상태 업데이트
+      const employeeItem = document.querySelector(`#leaveApproverList .employee-item[onclick*="${employee.empId}"]`);
+      if (employeeItem) {
+        employeeItem.classList.toggle('selected');
+      }
+    }
+
+    /**
+     * ✅ 협조자 토글 선택
+     */
+    function toggleLeaveCollaborator(employee) {
+      const index = selectedCollaborators.findIndex(c => c.empId === employee.empId);
+      if (index === -1) {
+        selectedCollaborators.push(employee);
+      } else {
+        selectedCollaborators.splice(index, 1);
+      }
+      
+      // 선택 상태 업데이트
+      const employeeItem = document.querySelector(`#leaveCollaboratorList .employee-item[onclick*="${employee.empId}"]`);
+      if (employeeItem) {
+        employeeItem.classList.toggle('selected');
+      }
+    }
+
+    /**
+     * ❌ 결재자 선택 모달 닫기
+     */
+    function closeLeaveApproverModal() {
+      const modal = document.getElementById('leaveApproverModal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+
+    /**
+     * ❌ 협조자 선택 모달 닫기
+     */
+    function closeLeaveCollaboratorModal() {
+      const modal = document.getElementById('leaveCollaboratorModal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+
+    /**
+     * ✅ 결재자 선택 완료
+     */
+    function confirmLeaveApproverSelection() {
+      if (selectedApprovers.length === 0) {
+        alert('결재자를 최소 1명 이상 선택해주세요.');
+        return;
+      }
+      updateSelectedApprovers();
+      closeLeaveApproverModal();
+    }
+
+    /**
+     * ✅ 협조자 선택 완료
+     */
+    function confirmLeaveCollaboratorSelection() {
+      updateSelectedCollaborators();
+      closeLeaveCollaboratorModal();
     }
     
     /**
