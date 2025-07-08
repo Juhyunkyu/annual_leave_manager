@@ -212,6 +212,106 @@
       color: #666;
     }
     
+    /* 🏠 대시보드 헤더 양쪽 정렬 스타일 */
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 2rem;
+    }
+    
+    .dashboard-title-section {
+      flex: 1;
+    }
+    
+    .dashboard-dept-section {
+      flex-shrink: 0;
+    }
+    
+    .dept-badge {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .dept-badge:before {
+      content: "🏢";
+      font-size: 1.1rem;
+    }
+    
+    .dept-badge:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* 부서 배지 로딩 상태 */
+    .dept-badge.loading-badge {
+      background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+      animation: pulse-loading 1.5s ease-in-out infinite;
+    }
+    
+    .dept-badge.loading-badge:before {
+      content: "⏳";
+    }
+    
+    .loading-dots::after {
+      content: '...';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+    
+         @keyframes pulse-loading {
+       0%, 100% { 
+         opacity: 0.7;
+         transform: scale(1);
+       }
+       50% { 
+         opacity: 1;
+         transform: scale(1.02);
+       }
+     }
+     
+     @keyframes dots {
+       0%, 20% { 
+         color: rgba(255,255,255,0.4);
+         text-shadow: 
+           .25em 0 0 rgba(255,255,255,0.4),
+           .5em 0 0 rgba(255,255,255,0.4);
+       }
+       40% { 
+         color: white;
+         text-shadow: 
+           .25em 0 0 rgba(255,255,255,0.4),
+           .5em 0 0 rgba(255,255,255,0.4);
+       }
+       60% { 
+         text-shadow: 
+           .25em 0 0 white,
+           .5em 0 0 rgba(255,255,255,0.4);
+       }
+       80%, 100% { 
+         text-shadow: 
+           .25em 0 0 white,
+           .5em 0 0 white;
+       }
+     }
+     
+     @keyframes shimmer {
+       0% {
+         background-position: -200% 0;
+       }
+       100% {
+         background-position: 200% 0;
+       }
+     }
+    
     /* 📊 대시보드 카드 */
     .dashboard-grid {
       display: grid;
@@ -298,6 +398,15 @@
     .form-group textarea {
       resize: vertical;
       min-height: 100px;
+    }
+    
+    /* 로딩 상태 입력 필드 */
+    .loading-input {
+      background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%) !important;
+      background-size: 200% 100% !important;
+      animation: shimmer 1.5s ease-in-out infinite !important;
+      color: #6c757d !important;
+      font-style: italic !important;
     }
     
     /* 🔘 버튼 */
@@ -2101,6 +2210,52 @@
     .status-warning { color: #ffc107; font-weight: 600; }
     .status-danger { color: #dc3545; font-weight: 600; }
 
+    /* 관리자 정보 카드 스타일 */
+    .dashboard-card.admin-info {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+      color: white;
+      border: 1px solid #ff5722;
+    }
+    
+    .dashboard-card.admin-info .card-icon {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .dashboard-card.admin-info .card-value {
+      color: white;
+      font-weight: 700;
+    }
+    
+    .dashboard-card.admin-info .card-label {
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .dashboard-card.admin-info:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(255, 107, 107, 0.4);
+    }
+    
+    /* 오류 카드 스타일 */
+    .dashboard-card.error {
+      background: linear-gradient(135deg, #ff4757 0%, #c44569 100%);
+      color: white;
+      border: 1px solid #ff3742;
+    }
+    
+    .dashboard-card.error .card-icon {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .dashboard-card.error .card-value {
+      color: white;
+      font-weight: 700;
+    }
+    
+    .dashboard-card.error .card-label {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.85rem;
+    }
+
     /* 직원 선택 모달 스타일 */
     .employee-list {
       max-height: 400px;
@@ -2274,13 +2429,20 @@
     
     <!-- 🏠 대시보드 페이지 -->
     <div id="dashboardPage" class="page active">
-      <div class="page-header">
-        <h1 class="page-title">🏠 대시보드</h1>
-        <? if (user.userType === 'admin') { ?>
-          <p class="page-subtitle">안녕하세요, <?= user.name ?> 관리자님! 시스템 관리 대시보드입니다.</p>
-        <? } else { ?>
-          <p class="page-subtitle">안녕하세요, <?= user.name ?>님! 연차 현황을 확인해보세요.</p>
-        <? } ?>
+      <div class="page-header dashboard-header">
+        <div class="dashboard-title-section">
+          <h1 class="page-title">🏠 대시보드</h1>
+          <? if (user.userType === 'admin') { ?>
+            <p class="page-subtitle" id="dashboardSubtitle">안녕하세요, <?= user.name ?> 관리자님! 시스템 관리 대시보드입니다.</p>
+          <? } else { ?>
+            <p class="page-subtitle" id="dashboardSubtitle">안녕하세요, <?= user.name ?>님! 연차 현황을 확인해보세요.</p>
+          <? } ?>
+        </div>
+        <div class="dashboard-dept-section">
+          <span class="dept-badge loading-badge" id="dashboardDeptBadge">
+            <span class="loading-dots">로딩중</span>
+          </span>
+        </div>
       </div>
       
       <? if (user.userType === 'admin') { ?>
@@ -2564,6 +2726,11 @@
           <div class="form-group">
             <label>이메일</label>
             <input type="text" value="<?= user.email ?>" readonly>
+          </div>
+          
+          <div class="form-group">
+            <label>소속 부서</label>
+            <input type="text" id="myInfoDeptName" value="⏳ 로딩중..." readonly class="loading-input">
           </div>
           
           <div class="form-group">
@@ -3414,7 +3581,7 @@
         if (currentUser.isAdmin) {
           // 관리자용 시스템 현황 데이터 로드
           const systemStats = await callServerFunction('getSystemStatistics');
-          const departments = await callServerFunction('getAllDepartments');
+          const departments = await callServerFunction('getDepartmentsQuick');
           
           if (systemStats) {
             document.getElementById('totalEmployees').textContent = systemStats.totalEmployees || '0';
@@ -4133,37 +4300,100 @@
      */
     async function loadMyInfo() {
       try {
-        const myLeaveInfo = await callServerFunction('getMyLeaveInfo', currentUser.empId);
+        // 빠른 부서 정보 로드를 위해 최적화된 함수 사용
+        const myLeaveInfo = await callServerFunction('getMyLeaveInfoFast', currentUser.empId);
         const container = document.getElementById('myLeaveInfo');
         
         if (myLeaveInfo) {
-          container.innerHTML = `
-            <div class="dashboard-card">
-              <div class="card-icon">📅</div>
-              <div class="card-value">${myLeaveInfo.totalLeaves || 15}</div>
-              <div class="card-label">총 연차 일수</div>
-            </div>
-            <div class="dashboard-card">
-              <div class="card-icon">✅</div>
-              <div class="card-value">${myLeaveInfo.usedLeaves || 0}</div>
-              <div class="card-label">사용한 연차</div>
-            </div>
-            <div class="dashboard-card">
-              <div class="card-icon">📊</div>
-              <div class="card-value">${myLeaveInfo.remainingLeaves || 15}</div>
-              <div class="card-label">남은 연차</div>
-            </div>
-            <div class="dashboard-card">
-              <div class="card-icon">📈</div>
-              <div class="card-value">${myLeaveInfo.thisYearUsed || 0}</div>
-              <div class="card-label">올해 사용</div>
-            </div>
-          `;
+          // 내 정보 페이지의 부서명 업데이트
+          const deptNameInput = document.getElementById('myInfoDeptName');
+          if (deptNameInput) {
+            // 로딩 상태 제거
+            deptNameInput.classList.remove('loading-input');
+            deptNameInput.value = myLeaveInfo.deptName || '부서 미지정';
+          }
+          
+          // 대시보드 헤더의 부서 배지 업데이트
+          const deptBadge = document.getElementById('dashboardDeptBadge');
+          if (deptBadge) {
+            // 로딩 상태 제거
+            deptBadge.classList.remove('loading-badge');
+            deptBadge.innerHTML = myLeaveInfo.deptName || '부서 미지정';
+          }
+          
+          // 관리자인 경우 특별 처리
+          if (myLeaveInfo.isAdmin) {
+            container.innerHTML = `
+              <div class="dashboard-card admin-info">
+                <div class="card-icon">🔐</div>
+                <div class="card-value">관리자</div>
+                <div class="card-label">시스템 관리자</div>
+              </div>
+              <div class="dashboard-card admin-info">
+                <div class="card-icon">⚙️</div>
+                <div class="card-value">모든 권한</div>
+                <div class="card-label">관리 권한</div>
+              </div>
+              <div class="dashboard-card admin-info">
+                <div class="card-icon">📊</div>
+                <div class="card-value">무제한</div>
+                <div class="card-label">시스템 접근</div>
+              </div>
+              <div class="dashboard-card admin-info">
+                <div class="card-icon">ℹ️</div>
+                <div class="card-value">-</div>
+                <div class="card-label">연차 정보 없음</div>
+              </div>
+            `;
+          } else if (myLeaveInfo.error) {
+            // 오류가 있는 경우
+            container.innerHTML = `
+              <div class="dashboard-card error">
+                <div class="card-icon">⚠️</div>
+                <div class="card-value">오류</div>
+                <div class="card-label">${myLeaveInfo.error}</div>
+              </div>
+            `;
+          } else {
+            // 일반 직원인 경우 기존 로직
+            container.innerHTML = `
+              <div class="dashboard-card">
+                <div class="card-icon">👤</div>
+                <div class="card-value">${myLeaveInfo.empName || currentUser.name}</div>
+                <div class="card-label">이름</div>
+              </div>
+              <div class="dashboard-card">
+                <div class="card-icon">🏢</div>
+                <div class="card-value">${myLeaveInfo.deptName || '부서 미지정'}</div>
+                <div class="card-label">소속 부서</div>
+              </div>
+              <div class="dashboard-card">
+                <div class="card-icon">📅</div>
+                <div class="card-value">${myLeaveInfo.totalLeaves || 15}</div>
+                <div class="card-label">총 연차 일수</div>
+              </div>
+              <div class="dashboard-card">
+                <div class="card-icon">✅</div>
+                <div class="card-value">${myLeaveInfo.usedLeaves || 0}</div>
+                <div class="card-label">사용한 연차</div>
+              </div>
+              <div class="dashboard-card">
+                <div class="card-icon">📊</div>
+                <div class="card-value">${myLeaveInfo.remainingLeaves || 15}</div>
+                <div class="card-label">남은 연차</div>
+              </div>
+              <div class="dashboard-card">
+                <div class="card-icon">📈</div>
+                <div class="card-value">${myLeaveInfo.thisYearUsed || 0}</div>
+                <div class="card-label">올해 사용</div>
+              </div>
+            `;
+          }
         }
       } catch (error) {
         console.error('내 정보 로드 오류:', error);
         document.getElementById('myLeaveInfo').innerHTML = 
-          '<p style="text-align: center; color: #dc3545;">정보를 불러올 수 없습니다.</p>';
+          '<p style="text-align: center; color: #dc3545;">TypeError: google.script.run.withSuccessHandler(...).withFailureHandler(...)[functionName] is not a function<br/>서버 함수를 찾을 수 없습니다. 페이지를 새로고침해주세요.</p>';
       }
     }
     
@@ -4739,6 +4969,8 @@
      */
     async function loadDepartmentManagement() {
       try {
+        // 직원 수가 필요한 경우에만 getAllDepartments 사용, 
+        // 일반적인 목록 조회는 빠른 함수 사용 후 필요시 직원 수만 별도 조회
         const departments = await callServerFunction('getAllDepartments');
         displayDepartmentList(departments);
       } catch (error) {
@@ -4796,10 +5028,10 @@
           </div>
         `;
         
-        // 직원 및 부서 데이터 로드
+        // 직원 및 부서 데이터 로드 (부서는 빠른 조회 사용)
         const [employees, departments] = await Promise.all([
           callServerFunction('getEmployeesForWeb'),
-          callServerFunction('getAllDepartments')
+          callServerFunction('getDepartmentsQuick')
         ]);
         
         console.log('📊 로드된 직원 수:', employees ? employees.length : 0);

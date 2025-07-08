@@ -6,6 +6,175 @@
  */
 
 // =====================================
+// 🚀 캐싱 시스템 (성능 최적화)
+// =====================================
+
+// 전역 캐시 변수들
+let departmentCache = null;
+let departmentCacheTime = null;
+let employeeCache = null;
+let employeeCacheTime = null;
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
+
+/**
+ * 🏢 부서 정보만 빠르게 조회 (직원 수 계산 없음)
+ */
+function getDepartmentsQuick() {
+  try {
+    // 캐시 확인
+    const now = new Date().getTime();
+    if (
+      departmentCache &&
+      departmentCacheTime &&
+      now - departmentCacheTime < CACHE_DURATION
+    ) {
+      console.log("부서 캐시 사용");
+      return departmentCache;
+    }
+
+    console.log("부서 정보 새로 조회");
+    const deptSheet = getSheet("Departments");
+    const deptData = deptSheet.getDataRange().getValues();
+
+    if (deptData.length <= 1) {
+      return [];
+    }
+
+    const departments = [];
+    for (let i = 1; i < deptData.length; i++) {
+      if (deptData[i][0] && deptData[i][1]) {
+        departments.push({
+          deptId: deptData[i][0].toString(),
+          deptName: deptData[i][1].toString(),
+        });
+      }
+    }
+
+    // 캐시 저장
+    departmentCache = departments;
+    departmentCacheTime = now;
+
+    return departments;
+  } catch (error) {
+    console.error("빠른 부서 조회 오류:", error);
+    return [];
+  }
+}
+
+/**
+ * 🏢 부서 정보 맵 생성 (캐싱 최적화) - 개선된 버전
+ */
+function getDepartmentMap() {
+  try {
+    const departments = getDepartmentsQuick();
+    const deptMap = {};
+
+    departments.forEach((dept) => {
+      deptMap[dept.deptId] = dept.deptName;
+    });
+
+    console.log("최종 부서 맵:", deptMap);
+    return deptMap;
+  } catch (error) {
+    console.error("부서 맵 생성 오류:", error);
+    return {};
+  }
+}
+
+/**
+ * 📊 내 연차 정보 조회 (대시보드용) - 최적화된 버전
+ */
+function getMyLeaveInfoFast(empId) {
+  try {
+    // 현재 세션 확인
+    const session = getValidSession();
+
+    // 관리자인 경우 별도 처리
+    if (session && session.userType === "admin") {
+      // 관리자 정보 조회
+      const adminInfo = getAdminByAdminId(session.adminId);
+
+      // 관리자는 연차 정보가 없으므로 기본값 반환
+      return {
+        totalLeaves: 0,
+        usedLeaves: 0,
+        remainingLeaves: 0,
+        thisYearUsed: 0,
+        year: new Date().getFullYear(),
+        isAdmin: true,
+        deptName: "관리부서",
+        empName: adminInfo ? adminInfo.name : "관리자",
+        position: adminInfo ? adminInfo.role : "시스템관리자",
+        message: "관리자는 연차 정보가 제공되지 않습니다.",
+      };
+    }
+
+    // 직원인 경우 - 부서 정보만 빠르게 조회
+    const employee = getEmployee(empId);
+    if (!employee) {
+      console.warn("직원 정보를 찾을 수 없습니다. empId:", empId);
+      return {
+        totalLeaves: 15,
+        usedLeaves: 0,
+        remainingLeaves: 15,
+        thisYearUsed: 0,
+        year: new Date().getFullYear(),
+        deptName: "부서 미지정",
+        empName: "사용자",
+        position: "직원",
+        error: "직원 정보를 찾을 수 없습니다.",
+      };
+    }
+
+    // 부서 정보 빠른 조회 (직원 수 계산 없이)
+    const deptMap = getDepartmentMap();
+    const deptName = deptMap[employee.deptId] || "부서 미지정";
+
+    // 연차 정보 계산
+    const currentYear = new Date().getFullYear();
+    const basicLeaves = parseInt(getSystemSetting("기본연차일수", 15));
+    const usedLeaves = calculateUsedLeaves(empId, currentYear);
+    const remainingLeaves = Math.max(0, basicLeaves - usedLeaves);
+
+    return {
+      totalLeaves: basicLeaves,
+      usedLeaves: usedLeaves,
+      remainingLeaves: remainingLeaves,
+      thisYearUsed: usedLeaves,
+      year: currentYear,
+      deptName: deptName,
+      empName: employee.name,
+      position: employee.position,
+    };
+  } catch (error) {
+    console.error("내 연차 정보 조회 오류:", error);
+    return {
+      totalLeaves: 15,
+      usedLeaves: 0,
+      remainingLeaves: 15,
+      thisYearUsed: 0,
+      year: new Date().getFullYear(),
+      deptName: "부서 미지정",
+      empName: "사용자",
+      position: "직원",
+      error: "시스템 오류가 발생했습니다.",
+    };
+  }
+}
+
+/**
+ * 🔄 캐시 초기화 함수
+ */
+function clearCache() {
+  departmentCache = null;
+  departmentCacheTime = null;
+  employeeCache = null;
+  employeeCacheTime = null;
+  console.log("캐시가 초기화되었습니다.");
+}
+
+// =====================================
 // 👥 직원 관리 통합 함수들
 // =====================================
 
@@ -69,33 +238,6 @@ function getAllEmployees() {
   } catch (error) {
     console.error("전체 직원 조회 오류:", error);
     return [];
-  }
-}
-
-/**
- * 🏢 부서 정보 맵 생성 (캐싱 최적화)
- */
-function getDepartmentMap() {
-  try {
-    const deptSheet = getSheet("Departments");
-    const deptData = deptSheet.getDataRange().getValues();
-    console.log("부서 시트 데이터:", deptData);
-
-    const deptMap = {};
-    for (let i = 1; i < deptData.length; i++) {
-      if (deptData[i][0] && deptData[i][1]) {
-        const deptId = deptData[i][0].toString();
-        const deptName = deptData[i][1].toString();
-        deptMap[deptId] = deptName;
-        console.log(`부서 매핑: ${deptId} → ${deptName}`);
-      }
-    }
-
-    console.log("최종 부서 맵:", deptMap);
-    return deptMap;
-  } catch (error) {
-    console.error("부서 맵 생성 오류:", error);
-    return {};
   }
 }
 
