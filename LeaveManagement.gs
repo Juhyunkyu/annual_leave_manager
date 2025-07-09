@@ -337,229 +337,20 @@ function validateLeaveRequest(requestData) {
 }
 
 /**
- * 🆔 신청 ID 생성
+ * 🔢 신청 ID 생성
  */
 function generateRequestId() {
-  const today = new Date();
-  const dateString =
-    today.getFullYear().toString() +
-    (today.getMonth() + 1).toString().padStart(2, "0") +
-    today.getDate().toString().padStart(2, "0");
+  const now = new Date();
+  const dateStr =
+    now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, "0") +
+    String(now.getDate()).padStart(2, "0");
+  const timeStr =
+    String(now.getHours()).padStart(2, "0") +
+    String(now.getMinutes()).padStart(2, "0") +
+    String(now.getSeconds()).padStart(2, "0");
 
-  // 같은 날짜의 신청 개수 확인
-  const sheet = getSheet("LeaveRequests");
-  const data = sheet.getDataRange().getValues();
-
-  let count = 1;
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] && data[i][0].toString().startsWith(dateString)) {
-      count++;
-    }
-  }
-
-  return dateString + "-" + count.toString().padStart(3, "0");
-}
-
-/**
- * 📋 결재 단계 생성
- */
-function createApprovalSteps(reqId, approvers) {
-  try {
-    const sheet = getSheet("ApprovalSteps");
-
-    approvers.forEach((approverId, index) => {
-      sheet.appendRow([
-        reqId,
-        null, // GroupID는 사용하지 않음
-        approverId,
-        index + 1, // StepOrder
-      ]);
-    });
-
-    console.log("결재 단계 생성 완료:", reqId, approvers.length + "단계");
-  } catch (error) {
-    console.error("결재 단계 생성 오류:", error);
-    throw error;
-  }
-}
-
-/**
- * 🤝 협조 단계 생성
- */
-function createCollaborationSteps(reqId, collaborators) {
-  try {
-    const sheet = getSheet("CollaborationSteps");
-
-    collaborators.forEach((collaboratorId, index) => {
-      sheet.appendRow([
-        reqId,
-        collaboratorId,
-        index + 1, // StepOrder
-      ]);
-    });
-
-    console.log("협조 단계 생성 완료:", reqId, collaborators.length + "명");
-  } catch (error) {
-    console.error("협조 단계 생성 오류:", error);
-    throw error;
-  }
-}
-
-// =====================================
-// ✅ 결재/협조 처리 함수들
-// =====================================
-
-/**
- * ✅ 결재 처리
- */
-function processApproval(reqId, approverId, result, comment) {
-  try {
-    console.log("결재 처리:", reqId, approverId, result);
-
-    // 결재 로그 기록
-    const logsSheet = getSheet("ApprovalLogs");
-    logsSheet.appendRow([reqId, approverId, result, new Date(), comment || ""]);
-
-    if (result === "반려") {
-      // 반려 시 신청 상태 업데이트
-      updateRequestStatus(reqId, "반려");
-
-      // 신청자에게 반려 알림
-      sendRejectionNotification(reqId, comment);
-
-      return {
-        success: true,
-        message: "연차 신청이 반려되었습니다.",
-      };
-    } else if (result === "승인") {
-      // 다음 결재자 확인
-      const nextApprover = getNextApprover(reqId, approverId);
-
-      if (nextApprover) {
-        // 다음 결재자에게 알림
-        sendApprovalNotification(reqId, nextApprover);
-
-        return {
-          success: true,
-          message: "결재가 완료되었습니다. 다음 결재자에게 전달됩니다.",
-        };
-      } else {
-        // 최종 승인 완료
-        finalizeApproval(reqId);
-
-        return {
-          success: true,
-          message: "연차 신청이 최종 승인되었습니다.",
-        };
-      }
-    }
-  } catch (error) {
-    console.error("결재 처리 오류:", error);
-    return {
-      success: false,
-      message: "결재 처리 중 오류가 발생했습니다: " + error.message,
-    };
-  }
-}
-
-/**
- * 🔍 다음 결재자 찾기
- */
-function getNextApprover(reqId, currentApproverId) {
-  try {
-    const sheet = getSheet("ApprovalSteps");
-    const data = sheet.getDataRange().getValues();
-
-    let currentStep = 0;
-
-    // 현재 결재자의 단계 찾기
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === reqId && data[i][2] == currentApproverId) {
-        currentStep = data[i][3];
-        break;
-      }
-    }
-
-    // 다음 단계의 결재자 찾기
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === reqId && data[i][3] === currentStep + 1) {
-        return data[i][2]; // ApproverID
-      }
-    }
-
-    return null; // 다음 결재자가 없음 (최종 단계)
-  } catch (error) {
-    console.error("다음 결재자 찾기 오류:", error);
-    return null;
-  }
-}
-
-/**
- * ✅ 최종 승인 처리
- */
-function finalizeApproval(reqId) {
-  try {
-    // 신청 상태 업데이트
-    updateRequestStatus(reqId, "승인");
-
-    // 연차 사용 기록 생성
-    recordLeaveUsage(reqId);
-
-    // 신청자에게 최종 승인 알림
-    sendFinalApprovalNotification(reqId);
-
-    console.log("최종 승인 처리 완료:", reqId);
-  } catch (error) {
-    console.error("최종 승인 처리 오류:", error);
-    throw error;
-  }
-}
-
-/**
- * 🔄 신청 상태 업데이트
- */
-function updateRequestStatus(reqId, status) {
-  try {
-    const sheet = getSheet("LeaveRequests");
-    const data = sheet.getDataRange().getValues();
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === reqId) {
-        sheet.getRange(i + 1, 8).setValue(status); // Status 컬럼 업데이트
-        break;
-      }
-    }
-  } catch (error) {
-    console.error("신청 상태 업데이트 오류:", error);
-    throw error;
-  }
-}
-
-/**
- * 📊 연차 사용 기록 생성
- */
-function recordLeaveUsage(reqId) {
-  try {
-    // 신청 정보 조회
-    const requestInfo = getRequestInfo(reqId);
-    if (!requestInfo) {
-      throw new Error("신청 정보를 찾을 수 없습니다.");
-    }
-
-    // LeaveUsage 시트에 기록
-    const usageSheet = getSheet("LeaveUsage");
-    usageSheet.appendRow([
-      reqId,
-      requestInfo.empId,
-      requestInfo.days,
-      new Date(),
-    ]);
-
-    console.log("연차 사용 기록 완료:", reqId, requestInfo.days + "일");
-  } catch (error) {
-    console.error("연차 사용 기록 오류:", error);
-    throw error;
-  }
+  return `${dateStr}-${timeStr}`;
 }
 
 /**
@@ -603,6 +394,189 @@ function isRequestPending(reqId) {
   } catch (error) {
     console.error("신청 상태 확인 오류:", error);
     return false;
+  }
+}
+
+// =====================================
+// ✅ 결재 처리 관련 함수들
+// =====================================
+
+/**
+ * ✅ 결재 단계 생성
+ */
+function createApprovalSteps(reqId, approvers) {
+  try {
+    const sheet = getSheet("ApprovalSteps");
+
+    for (let i = 0; i < approvers.length; i++) {
+      const newRow = [
+        reqId,
+        null, // GroupID (사용하지 않음)
+        approvers[i],
+        i + 1, // StepOrder
+      ];
+      sheet.appendRow(newRow);
+    }
+
+    console.log("결재 단계 생성 완료:", reqId);
+  } catch (error) {
+    console.error("결재 단계 생성 오류:", error);
+    throw error;
+  }
+}
+
+/**
+ * ✅ 결재 처리
+ */
+function processApproval(reqId, approverId, result, comment = "") {
+  try {
+    // 결재 로그 기록
+    const logSheet = getSheet("ApprovalLogs");
+    const logRow = [reqId, approverId, result, new Date(), comment];
+    logSheet.appendRow(logRow);
+
+    // 반려인 경우 신청 상태 변경
+    if (result === "반려") {
+      const requestSheet = getSheet("LeaveRequests");
+      const data = requestSheet.getDataRange().getValues();
+
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === reqId) {
+          requestSheet.getRange(i + 1, 8).setValue("반려");
+          break;
+        }
+      }
+
+      // 신청자에게 반려 알림 발송
+      sendRejectionNotification(reqId, comment);
+      return { success: true, message: "반려 처리 완료" };
+    }
+
+    // 승인인 경우 다음 결재자 확인
+    const nextApprover = getNextApprover(reqId, approverId);
+    if (nextApprover) {
+      // 다음 결재자에게 알림 발송
+      sendApprovalNotification(reqId, nextApprover);
+    } else {
+      // 모든 결재 완료 - 최종 승인 처리
+      finalizeApproval(reqId);
+    }
+
+    return { success: true, message: "결재 처리 완료" };
+  } catch (error) {
+    console.error("결재 처리 오류:", error);
+    return { success: false, message: "결재 처리 중 오류가 발생했습니다." };
+  }
+}
+
+/**
+ * ✅ 다음 결재자 조회
+ */
+function getNextApprover(reqId, currentApproverId) {
+  try {
+    const sheet = getSheet("ApprovalSteps");
+    const data = sheet.getDataRange().getValues();
+
+    let currentStep = 0;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === reqId && data[i][2] == currentApproverId) {
+        currentStep = parseInt(data[i][3]);
+        break;
+      }
+    }
+
+    // 다음 단계 결재자 찾기
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === reqId && parseInt(data[i][3]) === currentStep + 1) {
+        return data[i][2];
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error("다음 결재자 조회 오류:", error);
+    return null;
+  }
+}
+
+/**
+ * ✅ 최종 승인 처리
+ */
+function finalizeApproval(reqId) {
+  try {
+    // 신청 상태를 승인으로 변경
+    const requestSheet = getSheet("LeaveRequests");
+    const data = requestSheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === reqId) {
+        requestSheet.getRange(i + 1, 8).setValue("승인");
+
+        // 연차 사용 기록 추가
+        const usageSheet = getSheet("LeaveUsage");
+        const usageRow = [
+          reqId,
+          data[i][1], // EmpID
+          data[i][4], // Days
+          new Date(),
+        ];
+        usageSheet.appendRow(usageRow);
+        break;
+      }
+    }
+
+    // 신청자에게 최종 승인 알림 발송
+    sendFinalApprovalNotification(reqId);
+
+    console.log("최종 승인 처리 완료:", reqId);
+  } catch (error) {
+    console.error("최종 승인 처리 오류:", error);
+    throw error;
+  }
+}
+
+// =====================================
+// 🤝 협조 처리 관련 함수들
+// =====================================
+
+/**
+ * 🤝 협조 단계 생성
+ */
+function createCollaborationSteps(reqId, collaborators) {
+  try {
+    const sheet = getSheet("CollaborationSteps");
+
+    for (let i = 0; i < collaborators.length; i++) {
+      const newRow = [
+        reqId,
+        collaborators[i],
+        i + 1, // StepOrder
+      ];
+      sheet.appendRow(newRow);
+    }
+
+    console.log("협조 단계 생성 완료:", reqId);
+  } catch (error) {
+    console.error("협조 단계 생성 오류:", error);
+    throw error;
+  }
+}
+
+/**
+ * 🤝 협조 처리
+ */
+function processCollaboration(reqId, collaboratorId, result, comment = "") {
+  try {
+    // 협조 로그 기록
+    const logSheet = getSheet("CollaborationLogs");
+    const logRow = [reqId, collaboratorId, result, new Date(), comment];
+    logSheet.appendRow(logRow);
+
+    console.log("협조 처리 완료:", reqId);
+    return { success: true, message: "협조 처리 완료" };
+  } catch (error) {
+    console.error("협조 처리 오류:", error);
+    return { success: false, message: "협조 처리 중 오류가 발생했습니다." };
   }
 }
 
@@ -828,5 +802,47 @@ function getPendingCollaborationsCount(empId) {
   } catch (error) {
     console.error("협조 대기 개수 조회 오류:", error);
     return 0;
+  }
+}
+
+/**
+ * 🏢 부서명 조회
+ */
+function getDepartmentName(deptId) {
+  try {
+    const sheet = getSheet("Departments");
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == deptId) {
+        return data[i][1];
+      }
+    }
+
+    return "부서 미지정";
+  } catch (error) {
+    console.error("부서명 조회 오류:", error);
+    return "부서 미지정";
+  }
+}
+
+/**
+ * ⚙️ 시스템 설정값 조회
+ */
+function getSystemSetting(key, defaultValue = "") {
+  try {
+    const sheet = getSheet("Settings");
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        return data[i][1];
+      }
+    }
+
+    return defaultValue;
+  } catch (error) {
+    console.error("시스템 설정 조회 오류:", error);
+    return defaultValue;
   }
 }

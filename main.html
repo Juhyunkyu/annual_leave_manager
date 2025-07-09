@@ -312,6 +312,198 @@
        }
      }
     
+    /* 📅 근무표 스타일 */
+    .schedule-controls {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    }
+    
+    .work-schedule-container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    
+    .work-schedule-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      table-layout: fixed;
+    }
+    
+    .work-schedule-table th,
+    .work-schedule-table td {
+      border: 1px solid #e0e0e0;
+      padding: 0.4rem;
+      text-align: center;
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .work-schedule-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #495057;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    /* 제목 행 */
+    .schedule-title {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 1rem;
+    }
+    
+    /* 헤더 행 */
+    .schedule-header {
+      background: #e3f2fd;
+      font-weight: 600;
+      color: #1976d2;
+    }
+    
+    /* 직원 정보 열 */
+    .employee-info {
+      background: #f8f9fa;
+      font-weight: 500;
+      text-align: left;
+      padding-left: 0.8rem;
+    }
+    
+    /* 주말 색상 */
+    .weekend-saturday {
+      background-color: #e3f2fd !important;
+      color: #1976d2;
+    }
+    
+    .weekend-sunday,
+    .holiday {
+      background-color: #ffebee !important;
+      color: #d32f2f;
+    }
+    
+    /* 연차 표시 */
+    .leave-full {
+      background-color: #c8e6c9 !important;
+      color: #2e7d32;
+      font-weight: bold;
+    }
+    
+    .leave-half {
+      background-color: #fff3e0 !important;
+      color: #f57c00;
+      font-weight: bold;
+    }
+    
+    /* 근무일 */
+    .work-day {
+      background-color: #fafafa;
+    }
+    
+    /* 사용자 부서 정보 */
+    .user-dept-info {
+      margin-bottom: 1.5rem;
+    }
+    
+    .dept-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    .dept-icon {
+      font-size: 1.2rem;
+    }
+    
+    .dept-name {
+      font-size: 1rem;
+    }
+
+    /* 로딩 상태 스타일 */
+    .loading-badge {
+      opacity: 0.6;
+      position: relative;
+    }
+
+    .loading-badge::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #007bff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    /* 로딩 상태 */
+    .schedule-loading {
+      text-align: center;
+      padding: 3rem;
+      color: #666;
+    }
+    
+    .schedule-loading .spinner {
+      margin: 0 auto 1rem;
+    }
+
+    /* 빈 상태 스타일 */
+    .empty-state, .error-state, .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+
+    .empty-icon, .error-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state h3, .error-state h3 {
+      margin: 16px 0 8px 0;
+      color: #333;
+    }
+
+    .empty-state p, .error-state p {
+      margin: 8px 0 24px 0;
+      color: #666;
+    }
+
+    /* 로딩 스피너 */
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #007bff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     /* 📊 대시보드 카드 */
     .dashboard-grid {
       display: grid;
@@ -953,6 +1145,46 @@
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+
+    /* 선택된 직원 스타일 */
+    .selected-employee {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+    }
+
+    .selected-employee .employee-name {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .selected-employee .employee-dept {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .btn-remove {
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-remove:hover {
+      background: #c82333;
     }
     
     /* 🔧 직원 수정 모달 스타일 */
@@ -2416,6 +2648,9 @@
       <a class="menu-item" onclick="showPage('approvals')">
         <span class="icon">✅</span> 결재/협조 처리
       </a>
+      <a class="menu-item" onclick="showPage('workSchedule')">
+        <span class="icon">📅</span> 근무표
+      </a>
       <? if (user.isAdmin) { ?>
         <a class="menu-item" onclick="showPage('adminMenu')">
           <span class="icon">🔧</span> 관리자 메뉴
@@ -2701,6 +2936,46 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- 📅 근무표 페이지 -->
+    <div id="workSchedulePage" class="page">
+      <div class="page-header">
+        <h1 class="page-title">📅 근무표</h1>
+        <p class="page-subtitle">부서별 월간 근무 현황을 확인하세요.</p>
+      </div>
+      
+      <!-- 사용자 부서 정보 및 월 선택 -->
+      <div class="schedule-controls">
+        <div class="user-dept-info">
+          <div class="dept-badge">
+            <span class="dept-icon">🏢</span>
+            <span class="dept-name" id="userDeptName">부서 정보 로딩 중...</span>
+          </div>
+        </div>
+        
+        <div class="form-grid" style="grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
+          <div class="form-group">
+            <label for="scheduleMonth">조회 월</label>
+            <input type="month" id="scheduleMonth" onchange="loadWorkSchedule()">
+          </div>
+          
+          <div class="form-group">
+            <button type="button" class="btn btn-primary" onclick="createWorkScheduleSheet()">
+              <span>📋</span> 근무표 생성
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 근무표 컨테이너 -->
+      <div class="work-schedule-container" id="workScheduleContainer">
+        <div class="empty-state">
+          <div class="empty-icon">📅</div>
+          <h3>근무표를 선택해주세요</h3>
+          <p>부서와 조회할 월을 선택하면 근무표가 표시됩니다.</p>
+        </div>
       </div>
     </div>
 
@@ -3326,7 +3601,9 @@
     </div>
   </div>
 
-  <!-- 🏢 부서 수정 모달 -->
+  <!-- 🏢 부서 수정 모달 (관리자 전용) -->
+  <!-- 일반 직원에게는 불필요하므로 주석 처리 -->
+  <!--
   <div id="editDepartmentModal" class="modal-overlay">
     <div class="modal-container">
       <div class="modal-header">
@@ -3372,6 +3649,7 @@
       </div>
     </div>
   </div>
+  -->
 
   <!-- 사용자 정보를 JavaScript에서 사용할 수 있도록 숨겨진 요소로 전달 -->
   <div id="userInfo" style="display: none;">
@@ -3435,6 +3713,7 @@
       };
     }
     
+    // 전역 변수 선언 (연차 신청용)
     var selectedApprovers = [];
     var selectedCollaborators = [];
     
@@ -3514,6 +3793,8 @@
      * 📄 페이지 전환 함수
      */
     function showPage(pageId) {
+      console.log('페이지 전환:', pageId);
+      
       // userManagement를 employeeManagement로 리다이렉트 (호환성)
       if (pageId === 'userManagement') {
         pageId = 'employeeManagement';
@@ -3535,11 +3816,13 @@
         targetPage.classList.add('active');
       }
       
-      // 해당 메뉴 활성화
-      document.querySelectorAll('.menu-item').forEach(item => {
-        if (item.textContent.includes(getPageTitle(pageId)) || 
-            (pageId === 'employeeManagement' && item.textContent.includes('직원 관리'))) {
+      // 해당 메뉴 활성화 (정확한 선택자 사용)
+      const menuItems = document.querySelectorAll('.menu-item');
+      menuItems.forEach(item => {
+        const onclick = item.getAttribute('onclick');
+        if (onclick && onclick.includes(`showPage('${pageId}')`)) {
           item.classList.add('active');
+          console.log('메뉴 활성화:', pageId);
         }
       });
       
@@ -3590,14 +3873,23 @@
             document.getElementById('totalDepartments').textContent = departments ? departments.length : '0';
           }
         } else {
-          // 직원용 개인 연차 데이터 로드
-          const dashboardData = await callServerFunction('getDashboardData', currentUser.empId);
+          // 직원용 개인 연차 데이터 로드 (빠른 함수 사용)
+          const myLeaveInfo = await callServerFunction('getMyLeaveInfoFast', currentUser.empId);
           
-          if (dashboardData) {
-            document.getElementById('remainingLeaves').textContent = dashboardData.remainingLeaves || '15';
-            document.getElementById('pendingRequests').textContent = dashboardData.pendingRequests || '0';
-            document.getElementById('pendingApprovals').textContent = dashboardData.pendingApprovals || '0';
-            document.getElementById('thisMonthUsed').textContent = dashboardData.thisMonthUsed || '0';
+          if (myLeaveInfo) {
+            // 대시보드 카드 업데이트
+            document.getElementById('remainingLeaves').textContent = myLeaveInfo.remainingLeaves || '15';
+            document.getElementById('pendingRequests').textContent = myLeaveInfo.pendingRequests || '0';
+            document.getElementById('pendingApprovals').textContent = myLeaveInfo.pendingApprovals || '0';
+            document.getElementById('thisMonthUsed').textContent = myLeaveInfo.thisYearUsed || '0';
+            
+            // 부서 정보도 함께 업데이트 (로딩 상태 제거)
+            const deptBadge = document.getElementById('dashboardDeptBadge');
+            if (deptBadge) {
+              deptBadge.classList.remove('loading-badge');
+              deptBadge.innerHTML = myLeaveInfo.deptName || '부서 미지정';
+              console.log('✅ 대시보드 부서 정보 업데이트 완료:', myLeaveInfo.deptName);
+            }
             
             // 최근 신청 내역 로드
             loadRecentRequests();
@@ -3617,6 +3909,13 @@
           if (document.getElementById('pendingRequests')) document.getElementById('pendingRequests').textContent = '0';
           if (document.getElementById('pendingApprovals')) document.getElementById('pendingApprovals').textContent = '0';
           if (document.getElementById('thisMonthUsed')) document.getElementById('thisMonthUsed').textContent = '0';
+          
+          // 오류 시에도 부서 배지 로딩 상태 제거
+          const deptBadge = document.getElementById('dashboardDeptBadge');
+          if (deptBadge) {
+            deptBadge.classList.remove('loading-badge');
+            deptBadge.innerHTML = '부서 정보 로드 실패';
+          }
         }
       }
     }
@@ -3673,6 +3972,9 @@
             break;
           case 'myInfo':
             loadMyInfo();
+            break;
+          case 'workSchedule':
+            loadWorkSchedulePage();
             break;
           case 'leaveRequest':
             initializeLeaveRequestForm();
@@ -3803,20 +4105,39 @@
         return;
       }
       
+      // 필수 필드 검증
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const leaveType = document.getElementById('leaveType').value;
+      const reason = document.getElementById('reason').value;
+      
+      if (!startDate || !endDate || !leaveType || !reason) {
+        alert('모든 필수 항목을 입력해주세요.');
+        return;
+      }
+      
+      // 연차 일수 계산
+      const days = calculateLeaveDaysForSubmit(startDate, endDate, leaveType);
+      
       const formData = {
-        startDate: document.getElementById('startDate').value,
-        endDate: document.getElementById('endDate').value,
-        leaveType: document.getElementById('leaveType').value,
-        reason: document.getElementById('reason').value,
-        approvers: selectedApprovers,
-        collaborators: selectedCollaborators
+        empId: currentUser.empId, // 현재 사용자 ID
+        startDate: startDate,
+        endDate: endDate,
+        days: days, // 계산된 일수
+        leaveType: leaveType,
+        reason: reason,
+        approvers: selectedApprovers.map(a => a.empId), // 결재자 ID 배열
+        collaborators: selectedCollaborators.map(c => c.empId) // 협조자 ID 배열
       };
       
       try {
+        console.log('연차 신청 데이터:', formData);
         showLoading(true);
         const result = await callServerFunction('submitLeaveRequest', formData);
         
-        if (result.success) {
+        console.log('서버 응답:', result);
+        
+        if (result && result.success) {
           showNotification('연차 신청이 완료되었습니다!', 'success');
           document.getElementById('leaveRequestForm').reset();
           selectedApprovers = [];
@@ -3825,19 +4146,18 @@
           updateSelectedCollaborators();
           showPage('myRequests');
         } else {
-          showNotification('연차 신청 중 오류가 발생했습니다: ' + result.error, 'error');
+          const errorMessage = result && result.message ? result.message : '알 수 없는 오류가 발생했습니다.';
+          showNotification('연차 신청 중 오류가 발생했습니다: ' + errorMessage, 'error');
         }
       } catch (error) {
         console.error('연차 신청 오류:', error);
-        showNotification('연차 신청 중 오류가 발생했습니다.', 'error');
+        showNotification('연차 신청 중 오류가 발생했습니다: ' + error.message, 'error');
       } finally {
         showLoading(false);
       }
     }
     
-    // 연차 신청용 결재자/협조자 선택 변수
-    let leaveApprovers = []; // 선택된 결재자 목록
-    let leaveCollaborators = []; // 선택된 협조자 목록
+    // 연차 신청용 전체 직원 목록 변수
     let leaveEmployeeList = []; // 전체 직원 목록
     
     /**
@@ -3988,6 +4308,199 @@
       }
     }
     
+    /**
+     * 📅 연차 일수 계산 (화면 표시용)
+     */
+    function calculateLeaveDays() {
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const leaveType = document.getElementById('leaveType').value;
+      
+      if (!startDate || !endDate || !leaveType) {
+        document.getElementById('calculatedDays').value = '';
+        return;
+      }
+      
+      const calculatedDays = calculateLeaveDaysForSubmit(startDate, endDate, leaveType);
+      document.getElementById('calculatedDays').value = calculatedDays + '일';
+    }
+
+    /**
+     * 📅 연차 일수 계산 (서버 전송용)
+     */
+    function calculateLeaveDaysForSubmit(startDate, endDate, leaveType) {
+      if (!startDate || !endDate || !leaveType) {
+        return 0;
+      }
+      
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      
+      let calculatedDays = 0;
+      
+      switch (leaveType) {
+        case '연차':
+          calculatedDays = diffDays;
+          break;
+        case '반차':
+          calculatedDays = 0.5;
+          break;
+        case '특별휴가':
+          calculatedDays = diffDays;
+          break;
+        default:
+          calculatedDays = 0;
+      }
+      
+      return calculatedDays;
+    }
+
+    /**
+     * 👥 결재자 토글 선택
+     */
+    function toggleLeaveApprover(employeeData) {
+      const employee = JSON.parse(employeeData);
+      const index = selectedApprovers.findIndex(a => a.empId === employee.empId);
+      
+      if (index > -1) {
+        selectedApprovers.splice(index, 1);
+      } else {
+        selectedApprovers.push(employee);
+      }
+      
+      updateSelectedApprovers();
+    }
+
+    /**
+     * 🤝 협조자 토글 선택
+     */
+    function toggleLeaveCollaborator(employeeData) {
+      const employee = JSON.parse(employeeData);
+      const index = selectedCollaborators.findIndex(c => c.empId === employee.empId);
+      
+      if (index > -1) {
+        selectedCollaborators.splice(index, 1);
+      } else {
+        selectedCollaborators.push(employee);
+      }
+      
+      updateSelectedCollaborators();
+    }
+
+    /**
+     * 👥 선택된 결재자 업데이트
+     */
+    function updateSelectedApprovers() {
+      const container = document.getElementById('selectedApprovers');
+      if (!container) return;
+      
+      if (selectedApprovers.length === 0) {
+        container.innerHTML = '<p style="color: #666; font-style: italic;">선택된 결재자가 없습니다.</p>';
+        return;
+      }
+      
+      container.innerHTML = selectedApprovers.map((approver, index) => `
+        <div class="selected-employee">
+          <span class="employee-name">${approver.name}</span>
+          <span class="employee-dept">${approver.deptName}</span>
+          <button type="button" class="btn-remove" onclick="removeApprover(${index})">×</button>
+        </div>
+      `).join('');
+    }
+
+    /**
+     * 🤝 선택된 협조자 업데이트
+     */
+    function updateSelectedCollaborators() {
+      const container = document.getElementById('selectedCollaborators');
+      if (!container) return;
+      
+      if (selectedCollaborators.length === 0) {
+        container.innerHTML = '<p style="color: #666; font-style: italic;">선택된 협조자가 없습니다.</p>';
+        return;
+      }
+      
+      container.innerHTML = selectedCollaborators.map((collaborator, index) => `
+        <div class="selected-employee">
+          <span class="employee-name">${collaborator.name}</span>
+          <span class="employee-dept">${collaborator.deptName}</span>
+          <button type="button" class="btn-remove" onclick="removeCollaborator(${index})">×</button>
+        </div>
+      `).join('');
+    }
+
+    /**
+     * ❌ 결재자 제거
+     */
+    function removeApprover(index) {
+      selectedApprovers.splice(index, 1);
+      updateSelectedApprovers();
+    }
+
+    /**
+     * ❌ 협조자 제거
+     */
+    function removeCollaborator(index) {
+      selectedCollaborators.splice(index, 1);
+      updateSelectedCollaborators();
+    }
+
+    /**
+     * ✅ 결재자 확인
+     */
+    function confirmApprovers() {
+      closeApproverModal();
+      updateSelectedApprovers();
+    }
+
+    /**
+     * ✅ 협조자 확인
+     */
+    function confirmCollaborators() {
+      closeCollaboratorModal();
+      updateSelectedCollaborators();
+    }
+
+    /**
+     * ❌ 결재자 모달 닫기
+     */
+    function closeApproverModal() {
+      const modal = document.getElementById('approverModal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+
+    /**
+     * ❌ 협조자 모달 닫기
+     */
+    function closeCollaboratorModal() {
+      const modal = document.getElementById('collaboratorModal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+
+    /**
+     * 🔍 직원 목록 필터링
+     */
+    function filterEmployees(keyword) {
+      const employees = Array.from(document.querySelectorAll('.employee-item'));
+      employees.forEach(item => {
+        const name = item.querySelector('.employee-name').textContent.toLowerCase();
+        const dept = item.querySelector('.employee-dept').textContent.toLowerCase();
+        const keywordLower = keyword.toLowerCase();
+        
+        if (name.includes(keywordLower) || dept.includes(keywordLower)) {
+          item.style.display = 'block';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+
     /**
      * 🔍 결재자 목록 필터링
      */
@@ -4609,6 +5122,389 @@
     
     // 60초마다 알림 확인 (네트워크 요청 빈도 줄임)
     setInterval(checkNotifications, 60000);
+
+    // =====================================
+    // 📅 근무표 관리 함수들
+    // =====================================
+
+    /**
+     * 📅 근무표 페이지 로드
+     */
+    async function loadWorkSchedulePage() {
+      try {
+        console.log('📅 근무표 페이지 로드 시작...');
+        
+        // 사용자 부서 정보 로드 (비동기 처리)
+        loadUserDepartmentInfo().then(() => {
+          console.log('✅ 사용자 부서 정보 로드 완료');
+        }).catch(error => {
+          console.error('❌ 사용자 부서 정보 로드 실패:', error);
+        });
+        
+        // 현재 월로 기본 설정
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+        document.getElementById('scheduleMonth').value = currentMonth;
+        
+        console.log('✅ 근무표 페이지 로드 완료');
+        
+      } catch (error) {
+        console.error('❌ 근무표 페이지 로드 오류:', error);
+        showNotification('근무표 페이지를 불러올 수 없습니다.', 'error');
+      }
+    }
+
+    /**
+     * 👤 현재 사용자 ID 가져오기
+     */
+    function getCurrentUserId() {
+      // 세션에서 사용자 ID 가져오기
+      const session = getValidSession();
+      if (session) {
+        return session.userType === 'admin' ? session.adminId : session.empId;
+      }
+      return null;
+    }
+
+    /**
+     * 👤 현재 사용자 부서 ID 가져오기
+     */
+    function getCurrentUserDeptId() {
+      // 세션에서 부서 ID 가져오기 (임시)
+      const session = getValidSession();
+      if (session && session.userType === 'employee') {
+        return session.deptId || null;
+      }
+      return null;
+    }
+
+    /**
+     * 👤 사용자 부서 정보 로드
+     */
+    async function loadUserDepartmentInfo() {
+      try {
+        // 현재 로그인한 사용자 정보 가져오기
+        const userInfo = await callServerFunction('getMyLeaveInfoFast', getCurrentUserId());
+        
+        if (userInfo && userInfo.deptName) {
+          // 부서 정보 표시
+          document.getElementById('userDeptName').textContent = userInfo.deptName;
+          
+          // 사용자 부서 ID 저장 (근무표 생성 시 사용)
+          window.currentUserDeptId = userInfo.deptId || getCurrentUserDeptId();
+          
+          console.log('✅ 사용자 부서 정보 로드 완료:', userInfo.deptName);
+        } else {
+          document.getElementById('userDeptName').textContent = '부서 정보 없음';
+          console.warn('⚠️ 사용자 부서 정보를 찾을 수 없습니다.');
+        }
+        
+      } catch (error) {
+        console.error('❌ 사용자 부서 정보 로드 오류:', error);
+        document.getElementById('userDeptName').textContent = '부서 정보 로드 실패';
+        showNotification('부서 정보를 불러올 수 없습니다.', 'error');
+      }
+    }
+
+    /**
+     * 📊 근무표 데이터 로드
+     */
+    async function loadWorkScheduleData() {
+      const scheduleMonth = document.getElementById('scheduleMonth').value;
+      const userDeptId = window.currentUserDeptId;
+      
+      if (!userDeptId || !scheduleMonth) {
+        // 사용자 부서 정보가 없거나 월이 선택되지 않은 경우
+        showEmptyScheduleState();
+        return;
+      }
+      
+      try {
+        console.log('📊 근무표 로드 중...', userDeptId, scheduleMonth);
+        
+        // 로딩 상태 표시
+        showScheduleLoading();
+        
+        const [year, month] = scheduleMonth.split('-');
+        const scheduleData = await callServerFunction('getWorkScheduleData', userDeptId, parseInt(year), parseInt(month));
+        
+        if (scheduleData) {
+          displayWorkSchedule(scheduleData);
+        } else {
+          showScheduleNotFound(userDeptId, year, month);
+        }
+        
+      } catch (error) {
+        console.error('❌ 근무표 로드 오류:', error);
+        showScheduleError();
+      }
+    }
+
+    /**
+     * 📊 근무표 데이터 로드 (기존 함수명 유지)
+     */
+    async function loadWorkSchedule() {
+      const scheduleMonth = document.getElementById('scheduleMonth').value;
+      const userDeptId = window.currentUserDeptId;
+      
+      if (!userDeptId || !scheduleMonth) {
+        // 사용자 부서 정보가 없거나 월이 선택되지 않은 경우
+        showEmptyScheduleState();
+        return;
+      }
+      
+      try {
+        console.log('📊 근무표 로드 중...', userDeptId, scheduleMonth);
+        
+        // 로딩 상태 표시
+        showScheduleLoading();
+        
+        const [year, month] = scheduleMonth.split('-');
+        const scheduleData = await callServerFunction('getWorkScheduleData', userDeptId, parseInt(year), parseInt(month));
+        
+        if (scheduleData) {
+          displayWorkSchedule(scheduleData);
+        } else {
+          showScheduleNotFound(userDeptId, year, month);
+        }
+        
+      } catch (error) {
+        console.error('❌ 근무표 로드 오류:', error);
+        showScheduleError();
+      }
+    }
+
+    /**
+     * 📋 근무표 시트 생성
+     */
+    async function createWorkScheduleSheet() {
+      const scheduleMonth = document.getElementById('scheduleMonth').value;
+      const userDeptId = window.currentUserDeptId;
+      
+      if (!userDeptId || !scheduleMonth) {
+        showNotification('부서 정보가 없거나 월을 선택해주세요.', 'warning');
+        return;
+      }
+      
+      const confirmed = confirm('새로운 근무표 시트를 생성하시겠습니까?\n\n기존 데이터가 있다면 덮어쓰여질 수 있습니다.');
+      if (!confirmed) return;
+      
+      try {
+        showLoading(true);
+        
+        const [year, month] = scheduleMonth.split('-');
+        const result = await callServerFunction('createWorkScheduleSheet', userDeptId, parseInt(year), parseInt(month));
+        
+        if (result.success) {
+          showNotification('근무표 시트가 생성되었습니다.', 'success');
+          // 생성 후 자동으로 로드
+          await loadWorkSchedule();
+        } else {
+          showNotification('근무표 생성 실패: ' + result.error, 'error');
+        }
+        
+      } catch (error) {
+        console.error('❌ 근무표 생성 오류:', error);
+        showNotification('근무표 생성 중 오류가 발생했습니다.', 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    /**
+     * 📅 근무표 표시
+     */
+    function displayWorkSchedule(scheduleData) {
+      const container = document.getElementById('workScheduleContainer');
+      
+      if (!scheduleData || !scheduleData.employeeData || scheduleData.employeeData.length === 0) {
+        showScheduleNotFound();
+        return;
+      }
+      
+      // 테이블 HTML 생성
+      let tableHTML = `
+        <table class="work-schedule-table">
+          <thead>
+            <tr class="schedule-title">
+              <td colspan="${scheduleData.columnHeaders.length}">${scheduleData.title || '근무표'}</td>
+            </tr>
+            <tr class="schedule-header">
+              ${scheduleData.columnHeaders.map(header => `<th>${header}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      // 직원 데이터 행 추가
+      scheduleData.employeeData.forEach(row => {
+        tableHTML += '<tr>';
+        row.forEach((cell, index) => {
+          const cellClass = getCellClass(cell, index, scheduleData);
+          tableHTML += `<td class="${cellClass}">${cell || ''}</td>`;
+        });
+        tableHTML += '</tr>';
+      });
+      
+      tableHTML += '</tbody></table>';
+      
+      container.innerHTML = tableHTML;
+    }
+
+    /**
+     * 📋 빈 상태 표시
+     */
+    function showEmptyScheduleState() {
+      const container = document.getElementById('workScheduleContainer');
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📅</div>
+          <h3>근무표가 없습니다</h3>
+          <p>선택한 월의 근무표가 생성되지 않았습니다.</p>
+          <button onclick="createWorkScheduleSheet()" class="btn btn-primary">
+            📋 근무표 생성
+          </button>
+        </div>
+      `;
+    }
+
+    /**
+     * 🔍 근무표 없음 상태 표시
+     */
+    function showScheduleNotFound(deptId, year, month) {
+      const container = document.getElementById('workScheduleContainer');
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <h3>근무표를 찾을 수 없습니다</h3>
+          <p>${year}년 ${month}월의 근무표가 존재하지 않습니다.</p>
+          <button onclick="createWorkScheduleSheet()" class="btn btn-primary">
+            📋 근무표 생성
+          </button>
+        </div>
+      `;
+    }
+
+    /**
+     * ⏳ 로딩 상태 표시
+     */
+    function showScheduleLoading() {
+      const container = document.getElementById('workScheduleContainer');
+      container.innerHTML = `
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>근무표를 불러오는 중...</p>
+        </div>
+      `;
+    }
+
+    /**
+     * ❌ 오류 상태 표시
+     */
+    function showScheduleError() {
+      const container = document.getElementById('workScheduleContainer');
+      container.innerHTML = `
+        <div class="error-state">
+          <div class="error-icon">❌</div>
+          <h3>오류가 발생했습니다</h3>
+          <p>근무표를 불러오는 중 오류가 발생했습니다.</p>
+          <button onclick="loadWorkScheduleData()" class="btn btn-secondary">
+            🔄 다시 시도
+          </button>
+        </div>
+      `;
+    }
+
+    /**
+     * 🎨 셀 클래스 결정
+     */
+    function getCellClass(cellValue, columnIndex, scheduleData) {
+      // 기본 클래스
+      let classes = [];
+      
+      // 직원 정보 열 (사번, 이름 등)
+      if (columnIndex < 4) {
+        classes.push('employee-info');
+      }
+      
+      // 연차 표시
+      if (cellValue === 'Y') {
+        classes.push('leave-full');
+      } else if (cellValue === 'Y/2') {
+        classes.push('leave-half');
+      } else if (cellValue === 'D') {
+        classes.push('work-day');
+      } else if (cellValue === 'OFF') {
+        classes.push('holiday');
+      }
+      
+      // 주말 색상 (추후 구현)
+      // TODO: 날짜 정보를 통해 주말 판단
+      
+      return classes.join(' ');
+    }
+
+    /**
+     * 🔄 로딩 상태 표시
+     */
+    function showScheduleLoading() {
+      const container = document.getElementById('workScheduleContainer');
+      container.innerHTML = `
+        <div class="schedule-loading">
+          <div class="spinner"></div>
+          <h3>근무표를 불러오는 중입니다...</h3>
+          <p>잠시만 기다려주세요.</p>
+        </div>
+      `;
+    }
+
+    /**
+     * 📭 빈 상태 표시
+     */
+    function showEmptyScheduleState() {
+      const container = document.getElementById('workScheduleContainer');
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📅</div>
+          <h3>근무표를 확인해주세요</h3>
+          <p>조회할 월을 선택하면 근무표가 표시됩니다.</p>
+        </div>
+      `;
+    }
+
+    /**
+     * 🚫 근무표 없음 상태
+     */
+    function showScheduleNotFound(deptId, year, month) {
+      const container = document.getElementById('workScheduleContainer');
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>근무표가 없습니다</h3>
+          <p>${year}년 ${month}월 근무표가 생성되지 않았습니다.</p>
+          <button class="btn btn-primary" onclick="createWorkScheduleSheet()">
+            <span>📋</span> 근무표 생성하기
+          </button>
+        </div>
+      `;
+    }
+
+    /**
+     * ❌ 오류 상태 표시
+     */
+    function showScheduleError() {
+      const container = document.getElementById('workScheduleContainer');
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <h3>오류가 발생했습니다</h3>
+          <p>근무표를 불러오는 중 문제가 발생했습니다.</p>
+          <button class="btn btn-secondary" onclick="loadWorkSchedule()">
+            <span>🔄</span> 다시 시도
+          </button>
+        </div>
+      `;
+    }
 
     // =====================================
     // 🔧 관리자 기능 함수들
@@ -5806,102 +6702,27 @@
     }
 
     /**
-     * 🚫 부서 수정 모달 닫기
+     * 🚫 부서 수정 모달 닫기 (관리자 전용)
      */
     function closeEditDepartmentModal() {
-      const modal = document.getElementById('editDepartmentModal');
-      modal.style.display = 'none';
-      
-      // 폼 초기화
-      document.getElementById('editDepartmentForm').reset();
-      
-      // 메시지 초기화
-      const messageDiv = document.getElementById('editDepartmentMessage');
-      messageDiv.style.display = 'none';
+      // 일반 직원에게는 불필요한 기능이므로 빈 함수로 처리
+      console.log('부서 수정 모달 닫기 (관리자 전용 기능)');
     }
 
     /**
-     * 💾 부서 정보 변경사항 저장
+     * 💾 부서 정보 변경사항 저장 (관리자 전용)
      */
     async function saveDepartmentChanges() {
-      try {
-        const deptId = document.getElementById('editDeptId').value;
-        const deptName = document.getElementById('editDeptName').value.trim();
-        
-        // 필수 필드 검증
-        if (!deptName) {
-          showEditDepartmentMessage('부서명은 필수 입력 항목입니다.', 'error');
-          return;
-        }
-        
-        // 부서명 길이 검증
-        if (deptName.length < 2 || deptName.length > 20) {
-          showEditDepartmentMessage('부서명은 2자 이상 20자 이하로 입력해주세요.', 'error');
-          return;
-        }
-        
-        // 저장 버튼 비활성화
-        const saveBtn = document.querySelector('#editDepartmentModal .btn-modal-primary');
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<span>💾</span> 저장 중...';
-        
-        // 서버에 변경사항 전송
-        const updateData = {
-          deptId: deptId,
-          deptName: deptName
-        };
-        
-        const result = await callServerFunction('updateDepartment', updateData);
-        
-        if (result.success) {
-          showEditDepartmentMessage('부서 정보가 성공적으로 수정되었습니다!', 'success');
-          
-          // 성공 메시지 표시 후 모달 닫기
-          setTimeout(() => {
-            closeEditDepartmentModal();
-            showNotification('부서 정보 수정 완료', 'success');
-            
-            // 부서 목록 새로고침
-            loadDepartmentManagement();
-          }, 1500);
-          
-        } else {
-          showEditDepartmentMessage('부서 정보 수정 실패: ' + result.error, 'error');
-        }
-        
-      } catch (error) {
-        console.error('❌ 부서 정보 저장 오류:', error);
-        showEditDepartmentMessage('부서 정보 저장 중 오류가 발생했습니다.', 'error');
-      } finally {
-        // 저장 버튼 활성화
-        const saveBtn = document.querySelector('#editDepartmentModal .btn-modal-primary');
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '<span>💾</span> 저장';
-      }
+      // 일반 직원에게는 불필요한 기능이므로 빈 함수로 처리
+      console.log('부서 정보 저장 (관리자 전용 기능)');
     }
 
     /**
-     * 📧 부서 수정 모달 내 메시지 표시
+     * 📧 부서 수정 모달 내 메시지 표시 (관리자 전용)
      */
     function showEditDepartmentMessage(message, type) {
-      const messageDiv = document.getElementById('editDepartmentMessage');
-      messageDiv.textContent = message;
-      messageDiv.className = 'alert';
-      
-      if (type === 'success') {
-        messageDiv.classList.add('alert-success');
-      } else if (type === 'error') {
-        messageDiv.classList.add('alert-error');
-      }
-      
-      messageDiv.style.display = 'block';
-      
-      // 자동 숨김 (성공 메시지가 아닌 경우)
-      if (type !== 'success') {
-        setTimeout(() => {
-          messageDiv.style.display = 'none';
-        }, 5000);
-      }
+      // 일반 직원에게는 불필요한 기능이므로 빈 함수로 처리
+      console.log('부서 수정 메시지 (관리자 전용 기능):', message, type);
     }
 
     /**

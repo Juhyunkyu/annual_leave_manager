@@ -10,12 +10,12 @@
 // =====================================
 
 // 전역 캐시 변수들
-let departmentCache = null;
-let departmentCacheTime = null;
-let employeeCache = null;
-let employeeCacheTime = null;
+var departmentCache = null;
+var departmentCacheTime = null;
+var employeeCache = null;
+var employeeCacheTime = null;
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
+var CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
 
 /**
  * 🏢 부서 정보만 빠르게 조회 (직원 수 계산 없음)
@@ -23,7 +23,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
 function getDepartmentsQuick() {
   try {
     // 캐시 확인
-    const now = new Date().getTime();
+    var now = new Date().getTime();
     if (
       departmentCache &&
       departmentCacheTime &&
@@ -34,15 +34,15 @@ function getDepartmentsQuick() {
     }
 
     console.log("부서 정보 새로 조회");
-    const deptSheet = getSheet("Departments");
-    const deptData = deptSheet.getDataRange().getValues();
+    var deptSheet = getSheet("Departments");
+    var deptData = deptSheet.getDataRange().getValues();
 
     if (deptData.length <= 1) {
       return [];
     }
 
-    const departments = [];
-    for (let i = 1; i < deptData.length; i++) {
+    var departments = [];
+    for (var i = 1; i < deptData.length; i++) {
       if (deptData[i][0] && deptData[i][1]) {
         departments.push({
           deptId: deptData[i][0].toString(),
@@ -67,10 +67,10 @@ function getDepartmentsQuick() {
  */
 function getDepartmentMap() {
   try {
-    const departments = getDepartmentsQuick();
-    const deptMap = {};
+    var departments = getDepartmentsQuick();
+    var deptMap = {};
 
-    departments.forEach((dept) => {
+    departments.forEach(function (dept) {
       deptMap[dept.deptId] = dept.deptName;
     });
 
@@ -786,5 +786,158 @@ function getMyInfo(empId) {
   } catch (error) {
     console.error("내 정보 조회 오류:", error);
     return null;
+  }
+}
+
+// =====================================
+// 📅 근무표 관리 함수들은 WorkScheduleManagement.gs로 이동
+// =====================================
+
+// 근무표 관련 함수들은 WorkScheduleManagement.gs 파일로 이동됨
+
+// 근무표 관련 함수들은 WorkScheduleManagement.gs 파일로 이동됨
+
+/**
+ * 👥 직원 행 설정
+ */
+function setupEmployeeRows(sheet, employees, year, month) {
+  try {
+    console.log("👥 직원 행 설정 중...", employees.length + "명");
+
+    if (!employees || employees.length === 0) {
+      console.log("⚠️ 해당 부서에 직원이 없습니다.");
+      return;
+    }
+
+    const lastDay = new Date(year, month, 0).getDate();
+    const basicLeaves = parseInt(getSystemSetting("기본연차일수", 15));
+
+    employees.forEach((employee, index) => {
+      const rowIndex = 6 + index; // 6행부터 시작
+
+      // 기본 정보
+      const rowData = [
+        employee.empId,
+        employee.name,
+        basicLeaves, // 발생연차
+        basicLeaves, // 그전달까지 남은연차 (임시로 기본값)
+      ];
+
+      // 날짜별 기본값 설정
+      for (let day = 1; day <= lastDay; day++) {
+        const date = new Date(year, month - 1, day);
+        const dayOfWeek = date.getDay();
+
+        // 일요일은 OFF, 토요일과 평일은 D
+        if (dayOfWeek === 0) {
+          rowData.push("OFF"); // 일요일
+        } else {
+          rowData.push("D"); // 근무일
+        }
+      }
+
+      // 사용, 잔여, 비고
+      rowData.push(0, basicLeaves, "");
+
+      // 행 데이터 설정
+      sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+    });
+
+    console.log("✅ 직원 행 설정 완료");
+  } catch (error) {
+    console.error("❌ 직원 행 설정 오류:", error);
+    throw error;
+  }
+}
+
+/**
+ * 🎨 근무표 스타일 적용
+ */
+function applyWorkScheduleStyles(sheet, year, month) {
+  try {
+    console.log("🎨 근무표 스타일 적용 중...");
+
+    const lastDay = new Date(year, month, 0).getDate();
+    const totalColumns = 4 + lastDay + 3; // 기본정보(4) + 날짜 + 사용/잔여/비고(3)
+
+    // 1행 제목 스타일
+    const titleRange = sheet.getRange(1, 1, 1, totalColumns);
+    titleRange.merge();
+    titleRange.setBackground("#667eea");
+    titleRange.setFontColor("white");
+    titleRange.setFontSize(14);
+    titleRange.setFontWeight("bold");
+    titleRange.setHorizontalAlignment("center");
+    titleRange.setVerticalAlignment("middle");
+
+    // 2-5행 헤더 스타일
+    const headerRange = sheet.getRange(2, 1, 4, totalColumns);
+    headerRange.setBackground("#e3f2fd");
+    headerRange.setFontWeight("bold");
+    headerRange.setHorizontalAlignment("center");
+    headerRange.setVerticalAlignment("middle");
+
+    // 직원 정보 열 스타일 (A-D열)
+    const employeeInfoRange = sheet.getRange(6, 1, sheet.getLastRow() - 5, 4);
+    employeeInfoRange.setBackground("#f8f9fa");
+
+    // 주말 색상 적용
+    for (let day = 1; day <= lastDay; day++) {
+      const date = new Date(year, month - 1, day);
+      const dayOfWeek = date.getDay();
+      const columnIndex = 4 + day; // 날짜 열 위치
+
+      if (dayOfWeek === 0) {
+        // 일요일
+        const sundayRange = sheet.getRange(
+          2,
+          columnIndex,
+          sheet.getLastRow() - 1,
+          1
+        );
+        sundayRange.setBackground("#ffebee");
+        sundayRange.setFontColor("#d32f2f");
+      } else if (dayOfWeek === 6) {
+        // 토요일
+        const saturdayRange = sheet.getRange(
+          2,
+          columnIndex,
+          sheet.getLastRow() - 1,
+          1
+        );
+        saturdayRange.setBackground("#e3f2fd");
+        saturdayRange.setFontColor("#1976d2");
+      }
+    }
+
+    // 테두리 설정
+    const allDataRange = sheet.getRange(1, 1, sheet.getLastRow(), totalColumns);
+    allDataRange.setBorder(true, true, true, true, true, true);
+
+    // 행 높이 조정
+    sheet.setRowHeight(1, 40); // 제목 행
+    for (let i = 2; i <= 5; i++) {
+      sheet.setRowHeight(i, 25); // 헤더 행들
+    }
+
+    // 열 너비 조정
+    sheet.setColumnWidth(1, 80); // 사번
+    sheet.setColumnWidth(2, 100); // 이름
+    sheet.setColumnWidth(3, 80); // 발생연차
+    sheet.setColumnWidth(4, 120); // 그전달까지 남은연차
+
+    // 날짜 열들 (좁게)
+    for (let day = 1; day <= lastDay; day++) {
+      sheet.setColumnWidth(4 + day, 35);
+    }
+
+    sheet.setColumnWidth(4 + lastDay + 1, 60); // 사용
+    sheet.setColumnWidth(4 + lastDay + 2, 60); // 잔여
+    sheet.setColumnWidth(4 + lastDay + 3, 100); // 비고
+
+    console.log("✅ 근무표 스타일 적용 완료");
+  } catch (error) {
+    console.error("❌ 근무표 스타일 적용 오류:", error);
+    // 스타일 오류는 치명적이지 않으므로 계속 진행
   }
 }
