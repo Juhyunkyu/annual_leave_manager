@@ -37,37 +37,12 @@ function getDashboardData(empId) {
 }
 
 /**
- * 📋 최근 연차 신청 내역 가져오기
+ * 📋 최근 연차 신청 내역 가져오기 (클라이언트 호환)
  */
 function getRecentRequests(empId, limit = 5) {
   try {
-    const sheet = getSheet("LeaveRequests");
-    const data = sheet.getDataRange().getValues();
-
-    const requests = [];
-
-    // 헤더 제외하고 해당 직원의 신청 찾기
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][1] == empId) {
-        // EmpID 비교
-        requests.push({
-          reqId: data[i][0],
-          empId: data[i][1],
-          startDate: data[i][2],
-          endDate: data[i][3],
-          days: data[i][4],
-          leaveType: data[i][5],
-          reason: data[i][6],
-          status: data[i][7],
-          submitDate: data[i][8],
-        });
-      }
-    }
-
-    // 신청일 기준 내림차순 정렬
-    requests.sort((a, b) => new Date(b.submitDate) - new Date(a.submitDate));
-
-    return requests.slice(0, limit);
+    // 통합 함수 사용 (이미 클라이언트 호환 처리됨)
+    return getMyRequests(empId, limit);
   } catch (error) {
     console.error("최근 신청 내역 조회 오류:", error);
     return [];

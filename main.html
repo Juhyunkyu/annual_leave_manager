@@ -4011,10 +4011,52 @@
      */
     function callServerFunction(functionName, ...args) {
       return new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(reject)
-          [functionName](...args);
+        try {
+          // Google Apps Script 환경 확인
+          if (typeof google === 'undefined' || !google.script || !google.script.run) {
+            throw new Error('Google Apps Script 환경이 아닙니다. 구글 시트에서 실행해주세요.');
+          }
+
+          // 함수 존재 여부 확인
+          if (!google.script.run[functionName]) {
+            throw new Error(`서버 함수 '${functionName}'을 찾을 수 없습니다.`);
+          }
+
+          console.log(`📞 서버 함수 호출: ${functionName}(${args.join(', ')})`);
+          
+          // 타임아웃 설정 (30초)
+          const timeoutId = setTimeout(() => {
+            reject(new Error(`서버 함수 '${functionName}' 호출 시간이 초과되었습니다. (30초)`));
+          }, 30000);
+
+          google.script.run
+            .withSuccessHandler((result) => {
+              clearTimeout(timeoutId);
+              console.log(`✅ 서버 함수 성공: ${functionName}`, result);
+              resolve(result);
+            })
+            .withFailureHandler((error) => {
+              clearTimeout(timeoutId);
+              console.error(`❌ 서버 함수 실패: ${functionName}`, error);
+              
+              // 에러 메시지 정리
+              let errorMessage = '서버 오류가 발생했습니다.';
+              if (error && typeof error === 'string') {
+                errorMessage = error;
+              } else if (error && error.message) {
+                errorMessage = error.message;
+              } else if (error && error.toString) {
+                errorMessage = error.toString();
+              }
+              
+              reject(new Error(errorMessage));
+            })
+            [functionName](...args);
+            
+        } catch (error) {
+          console.error(`❌ 서버 함수 호출 오류: ${functionName}`, error);
+          reject(error);
+        }
       });
     }
     
@@ -4656,33 +4698,165 @@
     }
     
     /**
-     * 📊 내 신청 현황 로드
+     * 📊 내 신청 현황 로드 (완전 재작성)
      */
     async function loadMyRequests() {
+      console.log('🚀 loadMyRequests 함수 시작');
+      
+      const tableBody = document.getElementById('myRequestsTable');
+      
       try {
-        const myRequests = await callServerFunction('getMyRequests', currentUser.empId);
-        const tableBody = document.getElementById('myRequestsTable');
-        
-        if (myRequests && myRequests.length > 0) {
-          tableBody.innerHTML = myRequests.map(request => `
-            <tr>
-              <td>${request.reqId}</td>
-              <td>${formatDate(request.submitDate)}</td>
-              <td>${request.leaveType}</td>
-              <td>${formatDate(request.startDate)} ~ ${formatDate(request.endDate)}</td>
-              <td>${request.days}일</td>
-              <td><span class="status-badge status-${getStatusClass(request.status)}">${request.status}</span></td>
-              <td>${request.reason}</td>
-              <td><button onclick="showApprovalStatus('${request.reqId}')" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">상세보기</button></td>
-            </tr>
-          `).join('');
-        } else {
-          tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666;">신청한 연차가 없습니다.</td></tr>';
+        // 1. 기본 환경 확인
+        console.log('🔍 환경 확인 중...');
+        if (typeof google === 'undefined' || !google.script || !google.script.run) {
+          throw new Error('Google Apps Script 환경이 올바르지 않습니다.');
         }
+        
+        // 2. 사용자 정보 확인
+        console.log('👤 사용자 정보 확인 중...');
+        const empIdElement = document.getElementById('userEmpId');
+        const userNameElement = document.getElementById('userName');
+        
+        if (!empIdElement || !empIdElement.textContent) {
+          throw new Error('사용자 ID를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+        }
+        
+        const empId = empIdElement.textContent.trim();
+        const userName = userNameElement ? userNameElement.textContent.trim() : '사용자';
+        
+        console.log('👤 사용자 정보:', { empId, userName, type: typeof empId });
+        
+        if (!empId || empId === 'UNKNOWN' || empId === 'ERROR') {
+          throw new Error(`유효하지 않은 사용자 ID: ${empId}`);
+        }
+
+        // 3. 로딩 상태 표시
+        console.log('⏳ 로딩 상태 표시');
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align: center; color: #666; padding: 2rem;">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <div style="width: 20px; height: 20px; border: 2px solid #ddd; border-top: 2px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <span>📊 ${userName}님의 연차 신청 현황을 불러오는 중...</span>
+              </div>
+            </td>
+          </tr>
+        `;
+        
+        // 4. 서버 함수 직접 호출 (Promise 방식)
+        console.log('📞 서버 함수 호출 시작 - getMyRequests:', empId);
+        
+        const myRequests = await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('서버 응답 시간 초과 (30초)'));
+          }, 30000);
+          
+          google.script.run
+            .withSuccessHandler((result) => {
+              clearTimeout(timeoutId);
+              console.log('✅ getMyRequests 서버 응답 성공:', result);
+              resolve(result);
+            })
+            .withFailureHandler((error) => {
+              clearTimeout(timeoutId);
+              console.error('❌ getMyRequests 서버 응답 실패:', error);
+              reject(new Error(error.toString()));
+            })
+            .getMyRequests(empId);
+        });
+        
+        // 5. 응답 처리
+        console.log('📋 응답 데이터 처리 시작:', { 
+          type: typeof myRequests, 
+          isArray: Array.isArray(myRequests),
+          isNull: myRequests === null,
+          length: myRequests ? myRequests.length : 'N/A'
+        });
+        
+        // 오류 응답 처리
+        if (myRequests && typeof myRequests === 'object' && myRequests.error) {
+          console.error('🚨 서버 오류 응답:', myRequests);
+          throw new Error(`서버 오류: ${myRequests.message || '알 수 없는 오류'}`);
+        }
+        
+        // null 응답 처리
+        if (myRequests === null || myRequests === undefined) {
+          console.warn('⚠️ 서버에서 null/undefined 응답');
+          throw new Error('서버에서 응답을 받지 못했습니다. 로그인 상태를 확인하거나 페이지를 새로고침해주세요.');
+        }
+        
+        // 정상 데이터 처리
+        if (Array.isArray(myRequests) && myRequests.length > 0) {
+          console.log('✅ 신청 내역 발견:', myRequests.length, '건');
+          console.log('📋 첫 번째 신청 데이터:', myRequests[0]);
+          
+          tableBody.innerHTML = myRequests.map((request, index) => {
+            console.log(`📋 처리 중 ${index + 1}/${myRequests.length}:`, request);
+            return `
+              <tr>
+                <td>${request.reqId || '-'}</td>
+                <td>${formatDate(request.submitDate)}</td>
+                <td>${request.leaveType || '-'}</td>
+                <td>${formatDate(request.startDate)} ~ ${formatDate(request.endDate)}</td>
+                <td>${request.days || 0}일</td>
+                <td><span class="status-badge status-${getStatusClass(request.status)}">${request.status || '대기'}</span></td>
+                <td>${request.reason || '-'}</td>
+                <td><button onclick="showApprovalStatus('${request.reqId}')" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">상세보기</button></td>
+              </tr>
+            `;
+          }).join('');
+          
+          console.log('✅ 내 신청 현황 로드 완료');
+          showNotification(`연차 신청 현황 ${myRequests.length}건을 불러왔습니다.`, 'success');
+          
+        } else {
+          console.log('ℹ️ 신청 내역 없음');
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="8" style="text-align: center; color: #666; padding: 2rem;">
+                <div style="text-align: center;">
+                  <div style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
+                  <div style="font-size: 1.1rem; margin-bottom: 0.5rem;">아직 신청한 연차가 없습니다</div>
+                  <div style="color: #999; font-size: 0.9rem;">연차 신청 페이지에서 새로운 연차를 신청해보세요!</div>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+        
       } catch (error) {
-        console.error('내 신청 현황 로드 오류:', error);
-        document.getElementById('myRequestsTable').innerHTML = 
-          '<tr><td colspan="8" style="text-align: center; color: #dc3545;">데이터를 불러올 수 없습니다.</td></tr>';
+        console.error('❌ 내 신청 현황 로드 전체 오류:', error);
+        console.error('❌ 오류 스택:', error.stack);
+        
+        // 구체적인 오류 메시지
+        let errorMessage = '알 수 없는 오류가 발생했습니다.';
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+        
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align: center; color: #dc3545; padding: 2rem;">
+              <div style="text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                <div style="font-size: 1.1rem; margin-bottom: 1rem; color: #dc3545;">
+                  데이터를 불러올 수 없습니다
+                </div>
+                <div style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
+                  ${errorMessage}
+                </div>
+                <button onclick="loadMyRequests()" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                  🔄 다시 시도
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+        
+        // 사용자에게 알림
+        showNotification(`내 신청 현황을 불러올 수 없습니다: ${errorMessage}`, 'error');
       }
     }
     
@@ -7182,6 +7356,483 @@
       updateSelectedCollaborators();
       closeCollaboratorModal();
     }
+
+    /**
+     * 🔧 시스템 진단 도구
+     */
+    async function runSystemDiagnostics() {
+      const diagnostics = {
+        timestamp: new Date().toISOString(),
+        currentUser: currentUser,
+        googleScriptAvailable: typeof google !== 'undefined' && !!google.script,
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        checks: []
+      };
+
+      // 1. 사용자 정보 확인
+      const userCheck = {
+        test: '사용자 정보 로드',
+        passed: false,
+        message: '',
+        details: null
+      };
+
+      try {
+        if (currentUser && currentUser.empId && currentUser.empId !== 'UNKNOWN' && currentUser.empId !== 'ERROR') {
+          userCheck.passed = true;
+          userCheck.message = '사용자 정보 정상';
+          userCheck.details = currentUser;
+        } else {
+          userCheck.message = '사용자 정보 오류: ' + JSON.stringify(currentUser);
+        }
+      } catch (error) {
+        userCheck.message = '사용자 정보 확인 실패: ' + error.message;
+      }
+      diagnostics.checks.push(userCheck);
+
+      // 2. Google Apps Script 환경 확인
+      const gasCheck = {
+        test: 'Google Apps Script 환경',
+        passed: false,
+        message: '',
+        details: null
+      };
+
+      try {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          gasCheck.passed = true;
+          gasCheck.message = 'Google Apps Script 환경 정상';
+          gasCheck.details = {
+            googleDefined: typeof google !== 'undefined',
+            scriptDefined: !!google.script,
+            runDefined: !!google.script.run
+          };
+        } else {
+          gasCheck.message = 'Google Apps Script 환경 오류';
+          gasCheck.details = {
+            googleDefined: typeof google !== 'undefined',
+            scriptDefined: typeof google !== 'undefined' && !!google.script,
+            runDefined: typeof google !== 'undefined' && !!google.script && !!google.script.run
+          };
+        }
+      } catch (error) {
+        gasCheck.message = 'Google Apps Script 환경 확인 실패: ' + error.message;
+      }
+      diagnostics.checks.push(gasCheck);
+
+      // 3. 서버 함수 테스트
+      const serverCheck = {
+        test: '서버 함수 호출',
+        passed: false,
+        message: '',
+        details: null
+      };
+
+      try {
+        const testResult = await callServerFunction('getMyRequests', currentUser.empId);
+        serverCheck.passed = true;
+        serverCheck.message = '서버 함수 호출 성공';
+        serverCheck.details = {
+          resultType: typeof testResult,
+          isArray: Array.isArray(testResult),
+          length: testResult ? testResult.length : 0
+        };
+      } catch (error) {
+        serverCheck.message = '서버 함수 호출 실패: ' + error.message;
+        serverCheck.details = { error: error.toString() };
+      }
+      diagnostics.checks.push(serverCheck);
+
+      // 4. 시트 구조 확인
+      const sheetCheck = {
+        test: '시트 구조 확인',
+        passed: false,
+        message: '',
+        details: null
+      };
+
+      try {
+        const sheetInfo = await callServerFunction('debugLeaveRequestsSheet');
+        if (sheetInfo && !sheetInfo.error) {
+          sheetCheck.passed = true;
+          sheetCheck.message = `시트 구조 확인 성공 - 총 ${sheetInfo.totalRows}행, ${sheetInfo.totalCols}열`;
+          sheetCheck.details = sheetInfo;
+        } else {
+          sheetCheck.message = '시트 구조 확인 실패: ' + (sheetInfo.message || '알 수 없는 오류');
+          sheetCheck.details = sheetInfo;
+        }
+      } catch (error) {
+        sheetCheck.message = '시트 구조 확인 실패: ' + error.message;
+        sheetCheck.details = { error: error.toString() };
+      }
+      diagnostics.checks.push(sheetCheck);
+
+      // 결과 출력
+      console.log('🔧 시스템 진단 결과:', diagnostics);
+      
+      // 진단 결과 표시
+      const summary = diagnostics.checks.map(check => 
+        `${check.passed ? '✅' : '❌'} ${check.test}: ${check.message}`
+      ).join('\n');
+      
+      const alert_message = `시스템 진단 완료\n\n${summary}\n\n자세한 내용은 콘솔을 확인하세요.`;
+      alert(alert_message);
+      
+      return diagnostics;
+    }
+
+    /**
+     * 🔍 빠른 시트 디버깅
+     */
+    async function quickSheetDebug() {
+      try {
+        console.log('🔍 빠른 시트 디버깅 시작...');
+        
+        // 시트 구조 확인
+        const sheetInfo = await callServerFunction('debugLeaveRequestsSheet');
+        console.log('📊 시트 정보:', sheetInfo);
+        
+        // 내 신청 현황 다시 조회
+        const myRequests = await callServerFunction('getMyRequests', currentUser.empId);
+        console.log('📋 내 신청 현황:', myRequests);
+        
+        // 요약 정보 표시
+        const summary = `
+=== 🔍 빠른 시트 디버깅 결과 ===
+
+📊 시트 기본 정보:
+- 총 행 수: ${sheetInfo.totalRows}
+- 총 열 수: ${sheetInfo.totalCols}
+- 헤더: ${JSON.stringify(sheetInfo.header)}
+
+📋 내 신청 현황:
+- 타입: ${typeof myRequests}
+- 배열 여부: ${Array.isArray(myRequests)}
+- 길이: ${myRequests ? myRequests.length : 'N/A'}
+
+📊 현재 사용자 정보:
+- 직원ID: ${currentUser.empId}
+- 이름: ${currentUser.name}
+
+자세한 내용은 콘솔을 확인하세요.
+        `;
+        
+        console.log(summary);
+        alert(summary);
+        
+        return {
+          sheetInfo,
+          myRequests,
+          currentUser
+        };
+      } catch (error) {
+        console.error('❌ 빠른 시트 디버깅 오류:', error);
+        alert('빠른 시트 디버깅 실패: ' + error.message);
+        return null;
+      }
+    }
+
+    /**
+     * 🚨 코드 업데이트 확인 함수
+     */
+    async function checkCodeUpdate() {
+      try {
+        console.log('🚨 코드 업데이트 확인 시작...');
+        
+        const result = await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('코드 업데이트 확인 시간 초과'));
+          }, 10000);
+          
+          google.script.run
+            .withSuccessHandler((result) => {
+              clearTimeout(timeoutId);
+              resolve(result);
+            })
+            .withFailureHandler((error) => {
+              clearTimeout(timeoutId);
+              reject(new Error(error.toString()));
+            })
+            .checkCodeUpdate();
+        });
+        
+        console.log('✅ 코드 업데이트 확인 결과:', result);
+        
+        const message = `
+=== 🚨 코드 업데이트 확인 결과 ===
+
+✅ ${result.message}
+📅 업데이트 시간: ${result.timestamp}
+🔢 버전: ${result.version}
+
+이제 내신청 현황이 정상 작동할 것입니다!
+        `;
+        
+        console.log(message);
+        alert(message);
+        
+        return result;
+      } catch (error) {
+        console.error('❌ 코드 업데이트 확인 실패:', error);
+        
+        const message = `
+❌ 코드 업데이트 확인 실패
+
+오류: ${error.message}
+
+해결 방법:
+1. Google Apps Script 에디터에서 저장 (Ctrl+S)
+2. 새 버전으로 재배포
+3. 웹 앱 페이지 새로고침
+        `;
+        
+        console.log(message);
+        alert(message);
+        
+        return null;
+      }
+    }
+
+    /**
+     * 🧪 간단한 서버 통신 테스트
+     */
+    async function testServerConnection() {
+      try {
+        console.log('🧪 서버 통신 테스트 시작...');
+        
+        const result = await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('서버 응답 시간 초과'));
+          }, 15000);
+          
+          google.script.run
+            .withSuccessHandler((result) => {
+              clearTimeout(timeoutId);
+              resolve(result);
+            })
+            .withFailureHandler((error) => {
+              clearTimeout(timeoutId);
+              reject(new Error(error.toString()));
+            })
+            .testServerConnection();
+        });
+        
+        console.log('✅ 서버 통신 테스트 성공:', result);
+        alert(`✅ 서버 통신 성공!\n${result.message}\n시간: ${result.timestamp}`);
+        return result;
+      } catch (error) {
+        console.error('❌ 서버 통신 테스트 실패:', error);
+        alert(`❌ 서버 통신 실패!\n${error.message}`);
+        return null;
+      }
+    }
+
+    /**
+     * 🧪 현재 세션 상태 확인
+     */
+    async function testCurrentSession() {
+      try {
+        console.log('🧪 세션 상태 확인 시작...');
+        
+        const result = await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('세션 확인 시간 초과'));
+          }, 15000);
+          
+          google.script.run
+            .withSuccessHandler((result) => {
+              clearTimeout(timeoutId);
+              resolve(result);
+            })
+            .withFailureHandler((error) => {
+              clearTimeout(timeoutId);
+              reject(new Error(error.toString()));
+            })
+            .getCurrentSessionStatus();
+        });
+        
+        console.log('✅ 세션 상태 확인 성공:', result);
+        
+        if (result.success) {
+          const message = `
+✅ 세션 상태 확인 성공!
+
+📋 세션 정보:
+- 세션 존재: ${result.hasSession ? 'Yes' : 'No'}
+- 사용자 타입: ${result.sessionType || 'N/A'}
+- 직원 ID: ${result.empId || 'N/A'}
+- 관리자 ID: ${result.adminId || 'N/A'}
+- 확인 시간: ${result.timestamp}
+          `;
+          alert(message);
+        } else {
+          alert(`❌ 세션 상태 확인 실패!\n${result.error}`);
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('❌ 세션 상태 확인 실패:', error);
+        alert(`❌ 세션 상태 확인 실패!\n${error.message}`);
+        return null;
+      }
+    }
+
+    /**
+     * 🧪 LeaveRequests 시트 상태 확인
+     */
+    async function testLeaveRequestsSheet() {
+      try {
+        console.log('🧪 LeaveRequests 시트 상태 확인 시작...');
+        
+        const result = await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('시트 확인 시간 초과'));
+          }, 15000);
+          
+          google.script.run
+            .withSuccessHandler((result) => {
+              clearTimeout(timeoutId);
+              resolve(result);
+            })
+            .withFailureHandler((error) => {
+              clearTimeout(timeoutId);
+              reject(new Error(error.toString()));
+            })
+            .checkLeaveRequestsSheet();
+        });
+        
+        console.log('✅ LeaveRequests 시트 상태 확인 성공:', result);
+        
+        if (result.success) {
+          const message = `
+✅ LeaveRequests 시트 상태 확인 성공!
+
+📊 시트 정보:
+- 시트 존재: ${result.sheetExists ? 'Yes' : 'No'}
+- 총 행 수: ${result.totalRows}
+- 헤더: ${JSON.stringify(result.headerRow)}
+- 데이터 행 수: ${result.totalRows - 1}
+- 확인 시간: ${result.timestamp}
+
+📋 샘플 데이터:
+${JSON.stringify(result.sampleDataRows, null, 2)}
+          `;
+          alert(message);
+        } else {
+          alert(`❌ LeaveRequests 시트 상태 확인 실패!\n${result.error}`);
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('❌ LeaveRequests 시트 상태 확인 실패:', error);
+        alert(`❌ LeaveRequests 시트 상태 확인 실패!\n${error.message}`);
+        return null;
+      }
+    }
+
+    /**
+     * 🧪 단계별 진단 실행
+     */
+    async function runStepByStepDiagnosis() {
+      console.log('🚀 단계별 진단 시작...');
+      
+      const results = {
+        step1: null,
+        step2: null,
+        step3: null,
+        step4: null
+      };
+      
+      // Step 1: 서버 통신 테스트
+      console.log('📞 Step 1: 서버 통신 테스트');
+      results.step1 = await testServerConnection();
+      if (!results.step1) {
+        alert('❌ Step 1 실패: 서버 통신 불가능\n웹앱이 올바르게 배포되었는지 확인하세요.');
+        return results;
+      }
+      
+      // Step 2: 세션 상태 확인
+      console.log('👤 Step 2: 세션 상태 확인');
+      results.step2 = await testCurrentSession();
+      if (!results.step2 || !results.step2.success || !results.step2.hasSession) {
+        alert('❌ Step 2 실패: 세션이 없습니다\n로그아웃 후 다시 로그인하세요.');
+        return results;
+      }
+      
+      // Step 3: 시트 상태 확인
+      console.log('📊 Step 3: LeaveRequests 시트 상태 확인');
+      results.step3 = await testLeaveRequestsSheet();
+      if (!results.step3 || !results.step3.success) {
+        alert('❌ Step 3 실패: LeaveRequests 시트 문제\n시트가 존재하고 헤더가 올바른지 확인하세요.');
+        return results;
+      }
+      
+      // Step 4: getMyRequests 함수 테스트
+      console.log('🔍 Step 4: getMyRequests 함수 테스트');
+      try {
+        const myRequests = await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('getMyRequests 함수 응답 시간 초과'));
+          }, 30000);
+          
+          google.script.run
+            .withSuccessHandler((result) => {
+              clearTimeout(timeoutId);
+              resolve(result);
+            })
+            .withFailureHandler((error) => {
+              clearTimeout(timeoutId);
+              reject(new Error(error.toString()));
+            })
+            .getMyRequests(currentUser.empId);
+        });
+        
+        results.step4 = {
+          success: true,
+          result: myRequests,
+          type: typeof myRequests,
+          isArray: Array.isArray(myRequests),
+          length: myRequests ? myRequests.length : 0
+        };
+        
+        console.log('✅ Step 4 성공:', results.step4);
+        
+        const finalMessage = `
+🎉 모든 단계 성공!
+
+📊 getMyRequests 결과:
+- 타입: ${results.step4.type}
+- 배열 여부: ${results.step4.isArray}
+- 데이터 개수: ${results.step4.length}
+
+이제 "내 신청 현황"이 정상 작동할 것입니다!
+        `;
+        
+        alert(finalMessage);
+      } catch (error) {
+        console.error('❌ Step 4 실패:', error);
+        results.step4 = {
+          success: false,
+          error: error.message
+        };
+        
+        alert(`❌ Step 4 실패: getMyRequests 함수 오류\n${error.message}\n\n앞의 3단계는 성공했으므로 함수 로직에 문제가 있을 수 있습니다.`);
+      }
+      
+      console.log('🎯 전체 진단 결과:', results);
+      return results;
+    }
+
+    // 개발자 도구에서 바로 실행할 수 있도록 전역 함수로 설정
+    window.runSystemDiagnostics = runSystemDiagnostics;
+    window.loadMyRequests = loadMyRequests;
+    window.quickSheetDebug = quickSheetDebug;
+    window.checkCodeUpdate = checkCodeUpdate;
+    window.testServerConnection = testServerConnection;
+    window.testCurrentSession = testCurrentSession;
+    window.testLeaveRequestsSheet = testLeaveRequestsSheet;
+    window.runStepByStepDiagnosis = runStepByStepDiagnosis;
   </script>
 </body>
 </html> 

@@ -342,39 +342,334 @@ function getEmployeesByIds(empIds) {
 // =====================================
 
 /**
- * 📊 내 연차 신청 목록 조회
+ * 🚨 코드 업데이트 확인용 함수
  */
-function getMyRequests(empId, limit = null) {
+function checkCodeUpdate() {
+  const timestamp = new Date().toISOString();
+  console.log("🚨🚨🚨 코드 업데이트 확인 - 타임스탬프:", timestamp);
+  return {
+    updated: true,
+    timestamp: timestamp,
+    version: "2.0",
+    message: "새 코드가 정상적으로 적용되었습니다!",
+  };
+}
+
+/**
+ * 🔍 디버깅: LeaveRequests 시트 데이터 구조 확인
+ */
+function debugLeaveRequestsSheet() {
   try {
+    console.log("🔍 LeaveRequests 시트 디버깅 시작");
+
     const sheet = getSheet("LeaveRequests");
+    if (!sheet) {
+      return { error: true, message: "LeaveRequests 시트를 찾을 수 없습니다." };
+    }
+
     const data = sheet.getDataRange().getValues();
+    console.log("📊 시트 데이터 전체:", data);
 
-    const requests = [];
+    const result = {
+      sheetName: "LeaveRequests",
+      totalRows: data.length,
+      totalCols: data[0] ? data[0].length : 0,
+      header: data[0] || [],
+      sampleData: data.slice(1, 6), // 최대 5개 행 샘플
+      allData: data, // 전체 데이터 (디버깅용)
+      columnInfo: {},
+    };
 
-    // 헤더 제외하고 해당 직원의 신청 찾기
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][1] == empId) {
-        requests.push({
-          reqId: data[i][0],
-          empId: data[i][1],
-          startDate: data[i][2],
-          endDate: data[i][3],
-          days: data[i][4],
-          leaveType: data[i][5],
-          reason: data[i][6],
-          status: data[i][7],
-          submitDate: data[i][8],
-        });
+    // 컬럼별 정보 분석
+    if (data.length > 0) {
+      const header = data[0];
+      for (let col = 0; col < header.length; col++) {
+        const columnName = header[col];
+        const columnValues = data
+          .slice(1)
+          .map((row) => row[col])
+          .filter((val) => val !== "" && val !== null && val !== undefined);
+        result.columnInfo[columnName] = {
+          index: col,
+          sampleValues: columnValues.slice(0, 5),
+          totalValues: columnValues.length,
+          dataTypes: [...new Set(columnValues.map((val) => typeof val))],
+        };
       }
     }
 
-    // 신청일 기준 내림차순 정렬
-    requests.sort((a, b) => new Date(b.submitDate) - new Date(a.submitDate));
-
-    return limit ? requests.slice(0, limit) : requests;
+    console.log("🔍 디버깅 결과:", result);
+    return result;
   } catch (error) {
-    console.error("내 신청 목록 조회 오류:", error);
+    console.error("❌ 디버깅 오류:", error);
+    return {
+      error: true,
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+}
+
+/**
+ * 📊 내 연차 신청 목록 조회 (안정적 버전)
+ */
+function getMyRequests(empId, limit = null) {
+  console.log("🚀🚀🚀 getMyRequests 함수 시작 🚀🚀🚀");
+  console.log("📥 입력 파라미터:", { empId, limit, empIdType: typeof empId });
+
+  try {
+    // 1. 함수 진입 확인
+    console.log("✅ Step 1: 함수 진입 성공");
+
+    // 2. 현재 세션 확인
+    console.log("🔍 Step 2: 세션 확인 시작");
+    const session = getValidSession();
+    console.log("📋 세션 상태:", {
+      hasSession: !!session,
+      sessionData: session,
+    });
+
+    if (!session) {
+      console.error("❌ Step 2 실패: 세션이 없습니다");
+      console.log("🔙 반환값: 빈 배열 (세션 없음)");
+      return [];
+    }
+
+    console.log("✅ Step 2 성공: 세션 확인 완료");
+    console.log("📋 세션 정보:", {
+      userType: session.userType,
+      empId: session.empId,
+      adminId: session.adminId,
+      name: session.name,
+    });
+
+    // 3. 관리자인 경우 처리
+    console.log("🔍 Step 3: 사용자 타입 확인");
+    if (session.userType === "admin") {
+      console.log("ℹ️ Step 3: 관리자 사용자 - 연차 신청 내역 없음");
+      console.log("🔙 반환값: 빈 배열 (관리자)");
+      return [];
+    }
+
+    // 4. 직원 세션에서 empId 확인
+    console.log("🔍 Step 4: 직원 ID 확인");
+    const actualEmpId = session.empId || empId;
+    console.log("📋 직원 ID 결정:", {
+      sessionEmpId: session.empId,
+      parameterEmpId: empId,
+      actualEmpId: actualEmpId,
+    });
+
+    if (!actualEmpId) {
+      console.error("❌ Step 4 실패: 직원 ID를 찾을 수 없습니다");
+      console.log("🔙 반환값: 빈 배열 (empId 없음)");
+      return [];
+    }
+
+    console.log("✅ Step 4 성공: 조회 대상 empId =", actualEmpId);
+
+    // 5. LeaveRequests 시트 접근
+    console.log("🔍 Step 5: LeaveRequests 시트 접근");
+    const sheet = getSheet("LeaveRequests");
+    console.log("✅ Step 5a: 시트 객체 획득 성공");
+
+    const data = sheet.getDataRange().getValues();
+    console.log("✅ Step 5b: 시트 데이터 읽기 성공");
+    console.log("📋 시트 데이터 정보:", {
+      totalRows: data.length,
+      headerRow: data[0],
+      hasData: data.length > 1,
+    });
+
+    if (!data || data.length <= 1) {
+      console.log("ℹ️ Step 5: 연차 신청 데이터가 없습니다");
+      console.log("🔙 반환값: 빈 배열 (데이터 없음)");
+      return [];
+    }
+
+    console.log(
+      "✅ Step 5 성공: 시트 데이터 조회 완료 - 총",
+      data.length - 1,
+      "건"
+    );
+
+    // 6. 데이터 필터링
+    console.log("🔍 Step 6: 해당 직원의 신청 내역 필터링");
+    const requests = [];
+    const normalizedEmpId = actualEmpId.toString().trim();
+    console.log("📋 매칭 대상 empId:", normalizedEmpId);
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowEmpId = row[1]; // empId는 2번째 컬럼 (인덱스 1)
+      const normalizedRowEmpId = rowEmpId ? rowEmpId.toString().trim() : "";
+
+      console.log(`📋 행 ${i} 검사:`, {
+        rowEmpId: rowEmpId,
+        normalizedRowEmpId: normalizedRowEmpId,
+        isMatch: normalizedRowEmpId === normalizedEmpId,
+      });
+
+      if (normalizedRowEmpId === normalizedEmpId) {
+        const request = {
+          reqId: row[0] || "",
+          empId: row[1] || "",
+          startDate: formatDateForClient(row[2]),
+          endDate: formatDateForClient(row[3]),
+          days: row[4] || 0,
+          leaveType: row[5] || "",
+          reason: row[6] || "",
+          status: row[7] || "대기",
+          submitDate: formatDateForClient(row[8]),
+        };
+        requests.push(request);
+        console.log("✅ 매칭 성공:", request);
+      }
+    }
+
+    console.log("✅ Step 6 성공: 매칭된 신청 건수 =", requests.length);
+
+    // 7. 날짜 정렬
+    console.log("🔍 Step 7: 날짜 정렬");
+    requests.sort((a, b) => {
+      try {
+        return new Date(b.submitDate) - new Date(a.submitDate);
+      } catch (e) {
+        console.warn("⚠️ 정렬 오류:", e);
+        return 0;
+      }
+    });
+
+    // 8. 제한 개수 적용
+    console.log("🔍 Step 8: 제한 개수 적용");
+    const result = limit ? requests.slice(0, limit) : requests;
+
+    console.log("🎉🎉🎉 getMyRequests 완료 🎉🎉🎉");
+    console.log("🔙 최종 반환값:", {
+      type: "array",
+      length: result.length,
+      data: result,
+    });
+
+    return result;
+  } catch (error) {
+    console.error("❌❌❌ getMyRequests 전체 오류 ❌❌❌");
+    console.error("❌ 오류 메시지:", error.message);
+    console.error("❌ 오류 스택:", error.stack);
+    console.error("❌ 오류 상세:", error);
+
+    console.log("🔙 오류 시 반환값: 빈 배열");
     return [];
+  }
+}
+
+/**
+ * 🧪 디버깅: getMyRequests 함수 테스트
+ */
+function testGetMyRequests() {
+  try {
+    console.log("=== 🧪 getMyRequests 테스트 시작 ===");
+
+    // 1. 현재 세션 확인
+    const session = getValidSession();
+    console.log("1. 현재 세션:", session);
+
+    // 2. 임의의 empId로 테스트
+    const testEmpId = "1001"; // 테스트용 empId
+    console.log("2. 테스트 empId:", testEmpId);
+
+    // 3. getMyRequests 직접 호출
+    const result = getMyRequests(testEmpId);
+    console.log("3. getMyRequests 결과:", result);
+    console.log("3. 결과 타입:", typeof result);
+    console.log("3. 결과 길이:", result ? result.length : "N/A");
+
+    // 4. LeaveRequests 시트 직접 조회
+    const sheet = getSheet("LeaveRequests");
+    const data = sheet.getDataRange().getValues();
+    console.log("4. LeaveRequests 시트 전체 데이터:", data);
+
+    // 5. 해당 empId의 데이터 확인
+    const matchingRows = [];
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] && data[i][1].toString().trim() === testEmpId) {
+        matchingRows.push(data[i]);
+      }
+    }
+    console.log("5. 매칭되는 행들:", matchingRows);
+
+    return {
+      session: session,
+      testEmpId: testEmpId,
+      functionResult: result,
+      sheetData: data,
+      matchingRows: matchingRows,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("❌ 테스트 오류:", error);
+    return {
+      error: true,
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * 🧪 디버깅: 클라이언트용 getMyRequests 테스트
+ */
+function testGetMyRequestsForClient() {
+  try {
+    console.log("=== 🧪 클라이언트용 getMyRequests 테스트 시작 ===");
+
+    // 현재 세션에서 empId 가져오기
+    const session = getValidSession();
+    if (!session) {
+      return {
+        error: true,
+        message: "세션이 없습니다. 로그인이 필요합니다.",
+      };
+    }
+
+    let empId;
+    if (session.userType === "admin") {
+      empId = "1001"; // 관리자인 경우 테스트용 empId
+    } else {
+      empId = session.empId;
+    }
+
+    console.log("테스트 대상 empId:", empId);
+
+    // getMyRequests 호출
+    const result = getMyRequests(empId);
+
+    console.log("getMyRequestsForClient 결과:", {
+      sessionType: session.userType,
+      empId: empId,
+      resultType: typeof result,
+      resultLength: result ? result.length : "N/A",
+      result: result,
+    });
+
+    return {
+      success: true,
+      sessionType: session.userType,
+      empId: empId,
+      resultType: typeof result,
+      resultLength: result ? result.length : "N/A",
+      result: result,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("❌ 클라이언트용 테스트 오류:", error);
+    return {
+      error: true,
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+    };
   }
 }
 
@@ -789,6 +1084,101 @@ function getMyInfo(empId) {
   }
 }
 
+/**
+ * 🧪 서버 통신 테스트 - 간단한 함수
+ */
+function testServerConnection() {
+  console.log("🧪 testServerConnection 함수 호출됨");
+  return {
+    success: true,
+    message: "서버 통신이 정상적으로 작동합니다!",
+    timestamp: new Date().toISOString(),
+    testData: ["테스트1", "테스트2", "테스트3"],
+  };
+}
+
+/**
+ * 🧪 현재 세션 상태 확인
+ */
+function getCurrentSessionStatus() {
+  try {
+    console.log("🧪 getCurrentSessionStatus 함수 호출됨");
+    const session = getValidSession();
+
+    return {
+      success: true,
+      hasSession: !!session,
+      sessionType: session ? session.userType : null,
+      empId: session ? session.empId : null,
+      adminId: session ? session.adminId : null,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * 🧪 LeaveRequests 시트 상태 확인
+ */
+function checkLeaveRequestsSheet() {
+  try {
+    console.log("🧪 checkLeaveRequestsSheet 함수 호출됨");
+
+    const sheet = getSheet("LeaveRequests");
+    const data = sheet.getDataRange().getValues();
+
+    return {
+      success: true,
+      sheetExists: true,
+      totalRows: data.length,
+      headerRow: data[0] || [],
+      sampleDataRows: data.slice(1, 4), // 최대 3개 샘플 데이터
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * 📅 날짜를 클라이언트용 문자열로 변환
+ */
+function formatDateForClient(dateValue) {
+  try {
+    if (!dateValue) {
+      return "";
+    }
+
+    // 이미 문자열인 경우
+    if (typeof dateValue === "string") {
+      return dateValue;
+    }
+
+    // Date 객체인 경우 YYYY-MM-DD 형식으로 변환
+    if (dateValue instanceof Date) {
+      const year = dateValue.getFullYear();
+      const month = String(dateValue.getMonth() + 1).padStart(2, "0");
+      const day = String(dateValue.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    // 다른 타입인 경우 문자열로 변환
+    return String(dateValue);
+  } catch (error) {
+    console.warn("날짜 변환 오류:", error, "원본 값:", dateValue);
+    return "";
+  }
+}
+
 // =====================================
 // 📅 근무표 관리 함수들은 WorkScheduleManagement.gs로 이동
 // =====================================
@@ -940,4 +1330,172 @@ function applyWorkScheduleStyles(sheet, year, month) {
     console.error("❌ 근무표 스타일 적용 오류:", error);
     // 스타일 오류는 치명적이지 않으므로 계속 진행
   }
+}
+
+// =====================================
+// 🧪 Google Apps Script 디버거용 테스트 함수들
+// =====================================
+
+/**
+ * 🧪 테스트 함수 1: 서버 통신 테스트
+ */
+function runDebugTest1() {
+  console.log("=== 🧪 서버 통신 테스트 ===");
+  const result = testServerConnection();
+  console.log("결과:", result);
+  return result;
+}
+
+/**
+ * 🧪 테스트 함수 2: 현재 세션 상태
+ */
+function runDebugTest2() {
+  console.log("=== 🧪 세션 상태 테스트 ===");
+  const result = getCurrentSessionStatus();
+  console.log("결과:", result);
+  return result;
+}
+
+/**
+ * 🧪 테스트 함수 3: LeaveRequests 시트 확인
+ */
+function runDebugTest3() {
+  console.log("=== 🧪 LeaveRequests 시트 테스트 ===");
+  const result = checkLeaveRequestsSheet();
+  console.log("결과:", result);
+  return result;
+}
+
+/**
+ * 🧪 테스트 함수 4: getMyRequests 직접 테스트
+ */
+function runDebugTest4() {
+  console.log("=== 🧪 getMyRequests 직접 테스트 ===");
+
+  // 1001번 직원으로 테스트
+  const empId = "1001";
+  console.log("테스트 대상 empId:", empId);
+
+  const result = getMyRequests(empId);
+  console.log("getMyRequests 결과:", result);
+  console.log("결과 타입:", typeof result);
+  console.log("결과 길이:", result ? result.length : "N/A");
+
+  return {
+    empId: empId,
+    result: result,
+    type: typeof result,
+    length: result ? result.length : "N/A",
+  };
+}
+
+/**
+ * 🧪 테스트 함수 5: 전체 종합 테스트
+ */
+function runDebugTestAll() {
+  console.log("🚀🚀🚀 전체 종합 테스트 시작 🚀🚀🚀");
+
+  const results = {
+    timestamp: new Date().toISOString(),
+    test1: null,
+    test2: null,
+    test3: null,
+    test4: null,
+    summary: "",
+  };
+
+  try {
+    // Test 1: 서버 통신
+    console.log("📞 Test 1: 서버 통신 테스트");
+    results.test1 = runDebugTest1();
+
+    // Test 2: 세션 상태
+    console.log("👤 Test 2: 세션 상태 테스트");
+    results.test2 = runDebugTest2();
+
+    // Test 3: 시트 상태
+    console.log("📊 Test 3: 시트 상태 테스트");
+    results.test3 = runDebugTest3();
+
+    // Test 4: getMyRequests
+    console.log("🔍 Test 4: getMyRequests 테스트");
+    results.test4 = runDebugTest4();
+
+    // 요약 생성
+    const summary = [
+      `✅ Test 1 (서버 통신): ${results.test1?.success ? "SUCCESS" : "FAIL"}`,
+      `${
+        results.test2?.success && results.test2?.hasSession ? "✅" : "❌"
+      } Test 2 (세션): ${results.test2?.hasSession ? "ACTIVE" : "NONE"}`,
+      `${results.test3?.success ? "✅" : "❌"} Test 3 (시트): ${
+        results.test3?.success ? "OK" : "FAIL"
+      }`,
+      `${
+        results.test4?.result && Array.isArray(results.test4.result)
+          ? "✅"
+          : "❌"
+      } Test 4 (getMyRequests): ${results.test4?.type} (${
+        results.test4?.length
+      }건)`,
+    ];
+
+    results.summary = summary.join("\n");
+
+    console.log("🎯 전체 테스트 요약:");
+    console.log(results.summary);
+
+    return results;
+  } catch (error) {
+    console.error("❌ 전체 테스트 오류:", error);
+    results.summary = `❌ 전체 테스트 실패: ${error.message}`;
+    return results;
+  }
+}
+
+/**
+ * 🧪 테스트 함수 6: 클라이언트 호환 버전 테스트
+ */
+function runDebugTest6() {
+  console.log("=== 🧪 클라이언트 호환 버전 테스트 ===");
+
+  // 1001번 직원으로 테스트
+  const empId = "1001";
+  console.log("테스트 대상 empId:", empId);
+
+  const result = getMyRequests(empId);
+  console.log("클라이언트 호환 버전 결과:", result);
+
+  // 날짜 형식 확인
+  if (result && result.length > 0) {
+    const firstRequest = result[0];
+    console.log("첫 번째 요청의 날짜 형식:", {
+      startDate: {
+        value: firstRequest.startDate,
+        type: typeof firstRequest.startDate,
+      },
+      endDate: {
+        value: firstRequest.endDate,
+        type: typeof firstRequest.endDate,
+      },
+      submitDate: {
+        value: firstRequest.submitDate,
+        type: typeof firstRequest.submitDate,
+      },
+    });
+  }
+
+  return {
+    empId: empId,
+    result: result,
+    type: typeof result,
+    length: result ? result.length : "N/A",
+    dateFormats:
+      result && result.length > 0
+        ? {
+            startDateType: typeof result[0].startDate,
+            endDateType: typeof result[0].endDate,
+            submitDateType: typeof result[0].submitDate,
+          }
+        : null,
+  };
 }

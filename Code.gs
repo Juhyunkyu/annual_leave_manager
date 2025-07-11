@@ -15,8 +15,23 @@ const WEB_APP_URL = "YOUR_WEB_APP_URL_HERE"; // 웹앱 배포 후 URL을 여기�
  */
 function doGet(e) {
   try {
+    console.log("🚀 doGet 함수 시작 - 파라미터:", e);
+
+    // e가 undefined인 경우 빈 객체로 초기화 (Apps Script 에디터에서 직접 실행 시)
+    if (!e) {
+      console.log("⚠️ e 매개변수가 undefined - 기본값으로 초기화");
+      e = { parameter: {} };
+    }
+
+    // parameter가 없는 경우 빈 객체로 초기화
+    if (!e.parameter) {
+      console.log("⚠️ e.parameter가 undefined - 기본값으로 초기화");
+      e.parameter = {};
+    }
+
     // 강제 로그아웃 파라미터 확인
-    if (e.parameter && e.parameter.logout === "true") {
+    if (e.parameter.logout === "true") {
+      console.log("🔐 강제 로그아웃 요청");
       clearAllSessions();
       clearSession();
       return showLoginPage();
@@ -993,8 +1008,8 @@ function getDashboardData(empId) {
  */
 function getRecentRequests(empId) {
   try {
-    // 현재는 빈 배열 반환 (추후 구현)
-    return [];
+    // 통합 함수 사용
+    return getMyRequests(empId, 5); // 최대 5개 최근 신청 반환
   } catch (error) {
     console.error("최근 신청 내역 조회 오류:", error);
     return [];
