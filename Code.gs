@@ -120,16 +120,33 @@ function showMainApp(session) {
         email: userDetails.email,
         position: userDetails.role || "관리자",
         department: "관리부서",
+        deptId: "ADMIN",
+        deptName: "관리부서",
         isAdmin: true,
         userType: "admin",
       };
     } else {
+      // 직원인 경우 부서 정보도 함께 조회
+      const deptSheet = getSheet("Departments");
+      const deptData = deptSheet.getDataRange().getValues();
+      let deptName = "부서 미지정";
+
+      // 부서명 찾기
+      for (let i = 1; i < deptData.length; i++) {
+        if (deptData[i][0] == userDetails.deptId) {
+          deptName = deptData[i][1];
+          break;
+        }
+      }
+
       template.user = {
         empId: userDetails.empId,
         name: userDetails.name,
         email: userDetails.email,
         position: userDetails.position,
-        department: userDetails.department || "미지정",
+        department: deptName,
+        deptId: userDetails.deptId,
+        deptName: deptName,
         isAdmin: userDetails.position === "관리자" || session.isAdmin,
         userType: "employee",
       };

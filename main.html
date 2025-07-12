@@ -368,6 +368,82 @@
     /* 헤더 행 */
     .schedule-header {
       background: #e3f2fd;
+      font-weight: bold;
+    }
+    
+    /* 서브 헤더 (요일) */
+    .schedule-subheader {
+      background: #f5f5f5;
+      font-size: 0.8rem;
+    }
+    
+    /* 사용/잔여 헤더 */
+    .schedule-usage-header,
+    .schedule-remain-header {
+      background: #f8f9fa;
+      font-size: 0.75rem;
+      color: #666;
+    }
+    
+    /* 직원 행 */
+    .employee-row {
+      background: white;
+    }
+    
+    .employee-row:hover {
+      background: #f8f9fa;
+    }
+    
+    /* 직원 정보 열 */
+    .employee-info {
+      background: #f8f9fa;
+      font-weight: 500;
+    }
+    
+    /* 연차 표시 */
+    .leave-full {
+      background: #e8f5e8;
+      color: #2e7d32;
+      font-weight: bold;
+    }
+    
+    .leave-half {
+      background: #fff3e0;
+      color: #f57c00;
+      font-weight: bold;
+    }
+    
+    .work-day {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    
+    .holiday {
+      background: #ffebee;
+      color: #d32f2f;
+      font-weight: bold;
+    }
+    
+    /* 공휴일 셀 */
+    .holiday-cell {
+      background: #ffebee !important;
+      color: #d32f2f !important;
+      font-weight: bold !important;
+    }
+    
+    /* 일요일 셀 */
+    .sunday-cell {
+      background: #ffebee !important;
+      color: #d32f2f !important;
+    }
+    
+    /* 토요일 셀 */
+    .saturday-cell {
+      background: #e3f2fd !important;
+      color: #1976d2 !important;
+    }
+    .schedule-header {
+      background: #e3f2fd;
       font-weight: 600;
       color: #1976d2;
     }
@@ -2941,20 +3017,20 @@
 
     <!-- 📅 근무표 페이지 -->
     <div id="workSchedulePage" class="page">
-      <div class="page-header">
-        <h1 class="page-title">📅 근무표</h1>
-        <p class="page-subtitle">부서별 월간 근무 현황을 확인하세요.</p>
+      <div class="page-header dashboard-header">
+        <div class="dashboard-title-section">
+          <h1 class="page-title">📅 근무표</h1>
+          <p class="page-subtitle">부서별 월간 근무 현황을 확인하세요.</p>
+        </div>
+        <div class="dashboard-dept-section">
+          <span class="dept-badge loading-badge" id="workScheduleDeptBadge">
+            <span class="loading-dots">로딩중</span>
+          </span>
+        </div>
       </div>
       
-      <!-- 사용자 부서 정보 및 월 선택 -->
+      <!-- 월 선택 및 근무표 생성 -->
       <div class="schedule-controls">
-        <div class="user-dept-info">
-          <div class="dept-badge">
-            <span class="dept-icon">🏢</span>
-            <span class="dept-name" id="userDeptName">부서 정보 로딩 중...</span>
-          </div>
-        </div>
-        
         <div class="form-grid" style="grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
           <div class="form-group">
             <label for="scheduleMonth">조회 월</label>
@@ -2963,7 +3039,7 @@
           
           <div class="form-group">
             <button type="button" class="btn btn-primary" onclick="createWorkScheduleSheet()">
-              <span>📋</span> 근무표 생성
+              📋 근무표 생성
             </button>
           </div>
         </div>
@@ -2975,6 +3051,9 @@
           <div class="empty-icon">📅</div>
           <h3>근무표를 선택해주세요</h3>
           <p>부서와 조회할 월을 선택하면 근무표가 표시됩니다.</p>
+          <p style="color: #666; font-size: 0.9rem; margin-top: 1rem;">
+            💡 월을 선택한 후 "📋 근무표 생성" 버튼을 클릭하세요.
+          </p>
         </div>
       </div>
     </div>
@@ -3659,6 +3738,8 @@
     <span id="userPosition"><?= typeof user !== 'undefined' && user.position ? user.position : '직원' ?></span>
     <span id="userIsAdmin"><?= typeof user !== 'undefined' && user.isAdmin ? user.isAdmin : false ?></span>
     <span id="userDepartment"><?= typeof user !== 'undefined' && user.department ? user.department : '미지정' ?></span>
+    <span id="userDeptId"><?= typeof user !== 'undefined' && user.deptId ? user.deptId : '' ?></span>
+    <span id="userDeptName"><?= typeof user !== 'undefined' && user.deptName ? user.deptName : '부서 미지정' ?></span>
   </div>
   
 
@@ -3883,13 +3964,11 @@
             document.getElementById('pendingApprovals').textContent = myLeaveInfo.pendingApprovals || '0';
             document.getElementById('thisMonthUsed').textContent = myLeaveInfo.thisYearUsed || '0';
             
-            // 부서 정보도 함께 업데이트 (로딩 상태 제거)
-            const deptBadge = document.getElementById('dashboardDeptBadge');
-            if (deptBadge) {
-              deptBadge.classList.remove('loading-badge');
-              deptBadge.innerHTML = myLeaveInfo.deptName || '부서 미지정';
-              console.log('✅ 대시보드 부서 정보 업데이트 완료:', myLeaveInfo.deptName);
-            }
+            // 부서 정보 업데이트 (공통 함수 사용)
+            updateDeptBadge(myLeaveInfo.deptName);
+            
+            // 최근 신청 내역 로드
+            loadRecentRequests();
             
             // 최근 신청 내역 로드
             loadRecentRequests();
@@ -3911,15 +3990,36 @@
           if (document.getElementById('thisMonthUsed')) document.getElementById('thisMonthUsed').textContent = '0';
           
           // 오류 시에도 부서 배지 로딩 상태 제거
-          const deptBadge = document.getElementById('dashboardDeptBadge');
-          if (deptBadge) {
-            deptBadge.classList.remove('loading-badge');
-            deptBadge.innerHTML = '부서 정보 로드 실패';
-          }
+          updateDeptBadge('부서 정보 로드 실패');
         }
       }
     }
     
+    /**
+     * 🏢 부서 배지 업데이트 (공통 함수)
+     */
+    function updateDeptBadge(deptName) {
+      try {
+        // 대시보드 부서 배지 업데이트
+        const dashboardDeptBadge = document.getElementById('dashboardDeptBadge');
+        if (dashboardDeptBadge) {
+          dashboardDeptBadge.classList.remove('loading-badge');
+          dashboardDeptBadge.innerHTML = deptName || '부서 미지정';
+        }
+        
+        // 근무표 부서 배지 업데이트
+        const workScheduleDeptBadge = document.getElementById('workScheduleDeptBadge');
+        if (workScheduleDeptBadge) {
+          workScheduleDeptBadge.classList.remove('loading-badge');
+          workScheduleDeptBadge.innerHTML = deptName || '부서 미지정';
+        }
+        
+        console.log('✅ 부서 배지 업데이트 완료:', deptName);
+      } catch (error) {
+        console.error('❌ 부서 배지 업데이트 오류:', error);
+      }
+    }
+
     /**
      * 📝 최근 신청 내역 로드
      */
@@ -5000,13 +5100,8 @@
             deptNameInput.value = myLeaveInfo.deptName || '부서 미지정';
           }
           
-          // 대시보드 헤더의 부서 배지 업데이트
-          const deptBadge = document.getElementById('dashboardDeptBadge');
-          if (deptBadge) {
-            // 로딩 상태 제거
-            deptBadge.classList.remove('loading-badge');
-            deptBadge.innerHTML = myLeaveInfo.deptName || '부서 미지정';
-          }
+          // 공통 부서 배지 업데이트 함수 사용
+          updateDeptBadge(myLeaveInfo.deptName);
           
           // 관리자인 경우 특별 처리
           if (myLeaveInfo.isAdmin) {
@@ -5309,7 +5404,7 @@
         console.log('📅 근무표 페이지 로드 시작...');
         
         // 사용자 부서 정보 로드 (비동기 처리)
-        loadUserDepartmentInfo().then(() => {
+        await loadUserDepartmentInfo().then(() => {
           console.log('✅ 사용자 부서 정보 로드 완료');
         }).catch(error => {
           console.error('❌ 사용자 부서 정보 로드 실패:', error);
@@ -5319,6 +5414,9 @@
         const now = new Date();
         const currentMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
         document.getElementById('scheduleMonth').value = currentMonth;
+        
+        // 근무표 데이터 로드 및 버튼 상태 확인
+        await loadWorkSchedule();
         
         console.log('✅ 근무표 페이지 로드 완료');
         
@@ -5353,30 +5451,95 @@
     }
 
     /**
-     * 👤 사용자 부서 정보 로드
+     * 👤 사용자 부서 정보 로드 (간소화된 버전)
      */
     async function loadUserDepartmentInfo() {
       try {
-        // 현재 로그인한 사용자 정보 가져오기
-        const userInfo = await callServerFunction('getMyLeaveInfoFast', getCurrentUserId());
+        console.log('👤 사용자 부서 정보 로드 시작...');
         
-        if (userInfo && userInfo.deptName) {
-          // 부서 정보 표시
-          document.getElementById('userDeptName').textContent = userInfo.deptName;
-          
-          // 사용자 부서 ID 저장 (근무표 생성 시 사용)
-          window.currentUserDeptId = userInfo.deptId || getCurrentUserDeptId();
-          
-          console.log('✅ 사용자 부서 정보 로드 완료:', userInfo.deptName);
-        } else {
-          document.getElementById('userDeptName').textContent = '부서 정보 없음';
-          console.warn('⚠️ 사용자 부서 정보를 찾을 수 없습니다.');
+        // 현재 사용자 정보 가져오기
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+          console.error('❌ 현재 사용자 정보를 찾을 수 없습니다.');
+          updateDeptBadge('사용자 정보 없음');
+          return;
         }
+        
+        console.log('👤 현재 사용자 정보:', currentUser);
+        
+        // 부서 정보 설정
+        const deptName = currentUser.deptName || currentUser.department || '부서 미지정';
+        const deptId = currentUser.deptId || '10'; // 기본값으로 개발팀 사용
+        
+        // 공통 부서 배지 업데이트 함수 사용
+        updateDeptBadge(deptName);
+        
+        window.currentUserDeptId = deptId;
+        
+        console.log('✅ 사용자 부서 정보 로드 완료:', {
+          deptName: deptName,
+          deptId: deptId
+        });
         
       } catch (error) {
         console.error('❌ 사용자 부서 정보 로드 오류:', error);
-        document.getElementById('userDeptName').textContent = '부서 정보 로드 실패';
-        showNotification('부서 정보를 불러올 수 없습니다.', 'error');
+        
+        // 오류 시 기본값 설정
+        updateDeptBadge('부서 미지정');
+        window.currentUserDeptId = '10'; // 기본값으로 개발팀 사용
+        
+        console.log('🔄 오류 시 기본값 설정 완료');
+      }
+    }
+
+    /**
+     * 👤 현재 사용자 정보 가져오기 (개선된 버전)
+     */
+    function getCurrentUser() {
+      try {
+        // 전역 변수에서 사용자 정보 가져오기
+        if (typeof currentUser !== 'undefined' && currentUser && currentUser.empId !== 'UNKNOWN') {
+          return currentUser;
+        }
+        
+        // 숨겨진 HTML 요소에서 사용자 정보 가져오기
+        const userEmpIdEl = document.getElementById('userEmpId');
+        const userNameEl = document.getElementById('userName');
+        const userEmailEl = document.getElementById('userEmail');
+        const userPositionEl = document.getElementById('userPosition');
+        const userIsAdminEl = document.getElementById('userIsAdmin');
+        const userDepartmentEl = document.getElementById('userDepartment');
+        const userDeptIdEl = document.getElementById('userDeptId');
+        const userDeptNameEl = document.getElementById('userDeptName');
+        
+        if (userEmpIdEl && userNameEl && userEmailEl && userPositionEl && userIsAdminEl) {
+          return {
+            empId: userEmpIdEl.textContent || 'UNKNOWN',
+            name: userNameEl.textContent || '사용자',
+            email: userEmailEl.textContent || 'unknown@company.com',
+            position: userPositionEl.textContent || '직원',
+            isAdmin: userIsAdminEl.textContent === 'true',
+            department: userDepartmentEl ? userDepartmentEl.textContent : '부서 미지정',
+            deptId: userDeptIdEl ? userDeptIdEl.textContent : null,
+            deptName: userDeptNameEl ? userDeptNameEl.textContent : '부서 미지정',
+            userType: 'employee'
+          };
+        }
+        
+        // 기본값 반환
+        return {
+          empId: 'UNKNOWN',
+          name: '사용자',
+          email: '',
+          deptId: null,
+          deptName: '부서 미지정',
+          position: '',
+          isAdmin: false,
+          userType: 'employee'
+        };
+      } catch (error) {
+        console.error('❌ 현재 사용자 정보 가져오기 오류:', error);
+        return null;
       }
     }
 
@@ -5442,6 +5605,9 @@
           showScheduleNotFound(userDeptId, year, month);
         }
         
+        // 버튼 상태 업데이트
+        await updateWorkScheduleButtonState();
+        
       } catch (error) {
         console.error('❌ 근무표 로드 오류:', error);
         showScheduleError();
@@ -5449,7 +5615,7 @@
     }
 
     /**
-     * 📋 근무표 시트 생성
+     * 📋 근무표 시트 생성 (개선된 버전)
      */
     async function createWorkScheduleSheet() {
       const scheduleMonth = document.getElementById('scheduleMonth').value;
@@ -5473,6 +5639,8 @@
           showNotification('근무표 시트가 생성되었습니다.', 'success');
           // 생성 후 자동으로 로드
           await loadWorkSchedule();
+          // 버튼 상태 업데이트
+          updateWorkScheduleButtonState();
         } else {
           showNotification('근무표 생성 실패: ' + result.error, 'error');
         }
@@ -5486,7 +5654,43 @@
     }
 
     /**
-     * 📅 근무표 표시
+     * 🔍 근무표 존재 여부 확인 및 버튼 상태 업데이트
+     */
+    async function updateWorkScheduleButtonState() {
+      try {
+        const scheduleMonth = document.getElementById('scheduleMonth').value;
+        const userDeptId = window.currentUserDeptId;
+        
+        if (!userDeptId || !scheduleMonth) {
+          return;
+        }
+        
+        const [year, month] = scheduleMonth.split('-');
+        const result = await callServerFunction('checkWorkScheduleExists', userDeptId, parseInt(year), parseInt(month));
+        
+        const createButton = document.querySelector('button[onclick="createWorkScheduleSheet()"]');
+        
+        if (result.exists) {
+          // 근무표가 이미 존재하는 경우
+          createButton.disabled = true;
+          createButton.innerHTML = '<span>📋</span> 근무표 있음';
+          createButton.className = 'btn btn-secondary';
+          createButton.title = '이미 해당 월의 근무표가 생성되어 있습니다.';
+        } else {
+          // 근무표가 없는 경우
+          createButton.disabled = false;
+          createButton.innerHTML = '<span>📋</span> 근무표 생성';
+          createButton.className = 'btn btn-primary';
+          createButton.title = '새로운 근무표를 생성합니다.';
+        }
+        
+      } catch (error) {
+        console.error('❌ 근무표 버튼 상태 업데이트 오류:', error);
+      }
+    }
+
+    /**
+     * 📅 근무표 표시 (개선된 버전)
      */
     function displayWorkSchedule(scheduleData) {
       const container = document.getElementById('workScheduleContainer');
@@ -5496,7 +5700,7 @@
         return;
       }
       
-      // 테이블 HTML 생성
+      // 테이블 HTML 생성 (요구사항에 맞는 구조)
       let tableHTML = `
         <table class="work-schedule-table">
           <thead>
@@ -5506,13 +5710,22 @@
             <tr class="schedule-header">
               ${scheduleData.columnHeaders.map(header => `<th>${header}</th>`).join('')}
             </tr>
+            <tr class="schedule-subheader">
+              ${scheduleData.subHeaders.map(header => `<th>${header}</th>`).join('')}
+            </tr>
+            <tr class="schedule-usage-header">
+              ${scheduleData.usageHeaders.map(header => `<th>${header}</th>`).join('')}
+            </tr>
+            <tr class="schedule-remain-header">
+              ${scheduleData.remainHeaders.map(header => `<th>${header}</th>`).join('')}
+            </tr>
           </thead>
           <tbody>
       `;
       
       // 직원 데이터 행 추가
       scheduleData.employeeData.forEach(row => {
-        tableHTML += '<tr>';
+        tableHTML += '<tr class="employee-row">';
         row.forEach((cell, index) => {
           const cellClass = getCellClass(cell, index, scheduleData);
           tableHTML += `<td class="${cellClass}">${cell || ''}</td>`;
@@ -5535,9 +5748,9 @@
           <div class="empty-icon">📅</div>
           <h3>근무표가 없습니다</h3>
           <p>선택한 월의 근무표가 생성되지 않았습니다.</p>
-          <button onclick="createWorkScheduleSheet()" class="btn btn-primary">
-            📋 근무표 생성
-          </button>
+          <p style="color: #666; font-size: 0.9rem; margin-top: 1rem;">
+            💡 위의 "📋 근무표 생성" 버튼을 클릭하여 새로운 근무표를 생성하세요.
+          </p>
         </div>
       `;
     }
@@ -5552,9 +5765,9 @@
           <div class="empty-icon">🔍</div>
           <h3>근무표를 찾을 수 없습니다</h3>
           <p>${year}년 ${month}월의 근무표가 존재하지 않습니다.</p>
-          <button onclick="createWorkScheduleSheet()" class="btn btn-primary">
-            📋 근무표 생성
-          </button>
+          <p style="color: #666; font-size: 0.9rem; margin-top: 1rem;">
+            💡 위의 "📋 근무표 생성" 버튼을 클릭하여 새로운 근무표를 생성하세요.
+          </p>
         </div>
       `;
     }
@@ -5590,7 +5803,7 @@
     }
 
     /**
-     * 🎨 셀 클래스 결정
+     * 🎨 셀 클래스 결정 (개선된 버전)
      */
     function getCellClass(cellValue, columnIndex, scheduleData) {
       // 기본 클래스
@@ -5612,8 +5825,28 @@
         classes.push('holiday');
       }
       
-      // 주말 색상 (추후 구현)
-      // TODO: 날짜 정보를 통해 주말 판단
+      // 날짜 열인 경우 (4번째 열부터)
+      if (columnIndex >= 4 && columnIndex < scheduleData.columnHeaders.length - 3) {
+        const dayIndex = columnIndex - 4;
+        const day = dayIndex + 1;
+        const year = scheduleData.year;
+        const month = scheduleData.month;
+        
+        // 공휴일 확인 (서버에서 처리되므로 여기서는 스타일만 적용)
+        if (cellValue === 'OFF') {
+          classes.push('holiday-cell');
+        }
+        
+        // 주말 확인
+        const date = new Date(year, month - 1, day);
+        const dayOfWeek = date.getDay();
+        
+        if (dayOfWeek === 0) {
+          classes.push('sunday-cell');
+        } else if (dayOfWeek === 6) {
+          classes.push('saturday-cell');
+        }
+      }
       
       return classes.join(' ');
     }
@@ -5656,9 +5889,9 @@
           <div class="empty-icon">📋</div>
           <h3>근무표가 없습니다</h3>
           <p>${year}년 ${month}월 근무표가 생성되지 않았습니다.</p>
-          <button class="btn btn-primary" onclick="createWorkScheduleSheet()">
-            <span>📋</span> 근무표 생성하기
-          </button>
+          <p style="color: #666; font-size: 0.9rem; margin-top: 1rem;">
+            💡 위의 "📋 근무표 생성" 버튼을 클릭하여 새로운 근무표를 생성하세요.
+          </p>
         </div>
       `;
     }
