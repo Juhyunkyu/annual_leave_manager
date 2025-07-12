@@ -442,6 +442,25 @@
       background: #e3f2fd !important;
       color: #1976d2 !important;
     }
+    
+    /* 사용/잔여 열 스타일 */
+    .usage-column {
+      background: #fff3e0;
+      font-weight: 500;
+      color: #f57c00;
+    }
+    
+    .remaining-column {
+      background: #e8f5e8;
+      font-weight: 600;
+      color: #2e7d32;
+    }
+    
+    .note-column {
+      background: #f8f9fa;
+      font-style: italic;
+      color: #666;
+    }
     .schedule-header {
       background: #e3f2fd;
       font-weight: 600;
@@ -5700,7 +5719,7 @@
         return;
       }
       
-      // 테이블 HTML 생성 (요구사항에 맞는 구조)
+      // 테이블 HTML 생성 (구글시트 구조에 맞는 구조)
       let tableHTML = `
         <table class="work-schedule-table">
           <thead>
@@ -5712,12 +5731,6 @@
             </tr>
             <tr class="schedule-subheader">
               ${scheduleData.subHeaders.map(header => `<th>${header}</th>`).join('')}
-            </tr>
-            <tr class="schedule-usage-header">
-              ${scheduleData.usageHeaders.map(header => `<th>${header}</th>`).join('')}
-            </tr>
-            <tr class="schedule-remain-header">
-              ${scheduleData.remainHeaders.map(header => `<th>${header}</th>`).join('')}
             </tr>
           </thead>
           <tbody>
@@ -5803,14 +5816,14 @@
     }
 
     /**
-     * 🎨 셀 클래스 결정 (개선된 버전)
+     * 🎨 셀 클래스 결정 (구글시트 구조에 맞게 수정)
      */
     function getCellClass(cellValue, columnIndex, scheduleData) {
       // 기본 클래스
       let classes = [];
       
-      // 직원 정보 열 (사번, 이름 등)
-      if (columnIndex < 4) {
+      // 직원 정보 열 (사번, 이름, 발생)
+      if (columnIndex < 3) {
         classes.push('employee-info');
       }
       
@@ -5825,9 +5838,13 @@
         classes.push('holiday');
       }
       
-      // 날짜 열인 경우 (4번째 열부터)
-      if (columnIndex >= 4 && columnIndex < scheduleData.columnHeaders.length - 3) {
-        const dayIndex = columnIndex - 4;
+      // 날짜 열인 경우 (3번째 열부터, 사용/잔여/비고 열 제외)
+      // 새로운 구조: 기본정보(3) + 날짜 + 사용(2)/잔여/비고(4)
+      const totalColumns = scheduleData.columnHeaders.length;
+      const dateColumnsEnd = totalColumns - 4; // 사용(2)/잔여/비고(4) 제외
+      
+      if (columnIndex >= 3 && columnIndex < dateColumnsEnd) {
+        const dayIndex = columnIndex - 3;
         const day = dayIndex + 1;
         const year = scheduleData.year;
         const month = scheduleData.month;
@@ -5845,6 +5862,17 @@
           classes.push('sunday-cell');
         } else if (dayOfWeek === 6) {
           classes.push('saturday-cell');
+        }
+      }
+      
+      // 사용/잔여 열 스타일
+      if (columnIndex >= dateColumnsEnd) {
+        if (columnIndex === dateColumnsEnd || columnIndex === dateColumnsEnd + 1) {
+          classes.push('usage-column'); // 사용 Y, Y/2 열
+        } else if (columnIndex === dateColumnsEnd + 2) {
+          classes.push('remaining-column'); // 잔여 열
+        } else if (columnIndex === dateColumnsEnd + 3) {
+          classes.push('note-column'); // 비고 열
         }
       }
       

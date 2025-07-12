@@ -159,7 +159,7 @@ function checkWorkScheduleExists(deptId, year, month) {
 }
 
 /**
- * 📊 근무표 데이터 조회 (개선된 버전)
+ * 📊 근무표 데이터 조회 (구글시트 구조에 맞게 수정)
  */
 function getWorkScheduleData(deptId, year, month) {
   try {
@@ -184,7 +184,7 @@ function getWorkScheduleData(deptId, year, month) {
     // 데이터 조회
     const data = sheet.getDataRange().getValues();
 
-    if (data.length < 6) {
+    if (data.length < 4) {
       console.log("⚠️ 근무표 데이터가 충분하지 않습니다.");
       return null;
     }
@@ -193,9 +193,7 @@ function getWorkScheduleData(deptId, year, month) {
       title: data[0][0], // 제목
       columnHeaders: data[1], // 컬럼 헤더
       subHeaders: data[2], // 서브 헤더 (요일)
-      usageHeaders: data[3], // 사용 헤더
-      remainHeaders: data[4], // 잔여 헤더
-      employeeData: data.slice(5), // 직원 데이터 (6행부터)
+      employeeData: data.slice(3), // 직원 데이터 (4행부터)
       sheetName: sheetName,
       department: department.deptName,
       year: year,
@@ -208,36 +206,39 @@ function getWorkScheduleData(deptId, year, month) {
 }
 
 /**
- * 📋 근무표 헤더 설정 (요구사항에 맞게 개선)
+ * 📋 근무표 헤더 설정 (요구 표 구조에 맞게)
  */
 function setupWorkScheduleHeader(sheet, department, year, month) {
   try {
-    console.log("📋 근무표 헤더 설정 중...");
-
-    // 해당 월의 마지막 날짜 계산
     const lastDay = new Date(year, month, 0).getDate();
+    const totalColumns = 3 + lastDay + 4; // 사번,이름,발생 + 1~31 + 사용,Y/2,잔여,비고
 
-    // 1행: 제목
+    // 1행: 전체 병합, 제목
     const title = `${year}년 ${month}월 ${department.deptName} 근무표`;
-    sheet.getRange(1, 1).setValue(title);
+    sheet.getRange(1, 1, 1, totalColumns).merge();
+    sheet
+      .getRange(1, 1)
+      .setValue(title)
+      .setBackground("#667eea")
+      .setFontColor("white")
+      .setFontSize(16)
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center")
+      .setVerticalAlignment("middle");
 
     // 2행: 메인 헤더
-    const mainHeaders = ["사번", "이름", "발생", "그전달까지 남은연차"];
+    const mainHeaders = ["사번", "이름", "발생"];
 
     // 날짜 헤더 추가 (1일부터 마지막 날까지)
     for (let day = 1; day <= lastDay; day++) {
-      mainHeaders.push(`${day}일`);
+      mainHeaders.push(`${day}`);
     }
 
-    mainHeaders.push("사용", "잔여", "비고");
-
-    // 헤더 설정
+    mainHeaders.push("사용", "", "잔여", "비고");
     sheet.getRange(2, 1, 1, mainHeaders.length).setValues([mainHeaders]);
 
-    // 3행: 서브 헤더 (요일 정보)
-    const subHeaders = ["", "", "", ""];
-
-    // 요일 정보 추가
+    // 3행: 서브 헤더 (요일)
+    const subHeaders = ["", "Y", ""];
     for (let day = 1; day <= lastDay; day++) {
       const date = new Date(year, month - 1, day);
       const dayOfWeek = ["일", "월", "화", "수", "목", "금", "토"][
@@ -245,29 +246,16 @@ function setupWorkScheduleHeader(sheet, department, year, month) {
       ];
       subHeaders.push(dayOfWeek);
     }
-
-    subHeaders.push("", "", "");
-
-    // 서브 헤더 설정
+    subHeaders.push("Y", "Y/2", "Y", "");
     sheet.getRange(3, 1, 1, subHeaders.length).setValues([subHeaders]);
 
-    // 4행: 사용 행
-    const usageHeaders = ["사용", "사용", "사용", "사용"];
-    for (let day = 1; day <= lastDay; day++) {
-      usageHeaders.push("");
-    }
-    usageHeaders.push("Y", "Y/2", "");
-    sheet.getRange(4, 1, 1, usageHeaders.length).setValues([usageHeaders]);
-
-    // 5행: 잔여 행
-    const remainHeaders = ["잔여", "잔여", "잔여", "잔여"];
-    for (let day = 1; day <= lastDay; day++) {
-      remainHeaders.push("");
-    }
-    remainHeaders.push("Y", "", "");
-    sheet.getRange(5, 1, 1, remainHeaders.length).setValues([remainHeaders]);
-
-    console.log("✅ 근무표 헤더 설정 완료");
+    // 헤더 스타일 및 중앙정렬
+    sheet
+      .getRange(2, 1, 2, totalColumns)
+      .setBackground("#e3f2fd")
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center")
+      .setVerticalAlignment("middle");
   } catch (error) {
     console.error("❌ 근무표 헤더 설정 오류:", error);
     throw error;
@@ -275,54 +263,36 @@ function setupWorkScheduleHeader(sheet, department, year, month) {
 }
 
 /**
- * 👥 직원 행 설정 (개선된 버전)
+ * 👥 직원 행 설정 (중앙정렬)
  */
 function setupEmployeeRows(sheet, employees, year, month) {
   try {
-    console.log("👥 직원 행 설정 중...", employees.length + "명");
-
-    if (!employees || employees.length === 0) {
-      console.log("⚠️ 해당 부서에 직원이 없습니다.");
-      return;
-    }
-
+    if (!employees || employees.length === 0) return;
     const lastDay = new Date(year, month, 0).getDate();
-    const basicLeaves = parseInt(getSystemSetting("기본연차일수", 15));
-
     employees.forEach((employee, index) => {
-      const rowIndex = 6 + index; // 6행부터 시작
-
-      // 기본 정보
-      const rowData = [
+      const rowIndex = 4 + index; // 4행부터
+      const previousRemaining = getPreviousMonthRemaining(
         employee.empId,
-        employee.name,
-        basicLeaves, // 발생연차
-        basicLeaves, // 그전달까지 남은연차 (임시로 기본값)
-      ];
-
-      // 날짜별 근무 상태 설정
+        year,
+        month
+      );
+      const rowData = [employee.empId, employee.name, previousRemaining];
       for (let day = 1; day <= lastDay; day++) {
         const date = new Date(year, month - 1, day);
         const dayOfWeek = date.getDay();
-
-        // 공휴일 확인
-        if (isHoliday(year, month, day)) {
-          rowData.push("OFF"); // 공휴일
-        } else if (dayOfWeek === 0) {
-          rowData.push("OFF"); // 일요일
-        } else {
-          rowData.push("D"); // 근무일
-        }
+        if (isHoliday(year, month, day)) rowData.push("OFF");
+        else if (dayOfWeek === 0) rowData.push("OFF");
+        else rowData.push("D");
       }
-
-      // 사용, 잔여, 비고
-      rowData.push(0, basicLeaves, "");
-
-      // 행 데이터 설정
+      rowData.push(0, 0, previousRemaining, "");
       sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
     });
-
-    console.log("✅ 직원 행 설정 완료");
+    // 직원 데이터 중앙정렬
+    const totalColumns = 3 + lastDay + 4;
+    sheet
+      .getRange(4, 1, employees.length, totalColumns)
+      .setHorizontalAlignment("center")
+      .setVerticalAlignment("middle");
   } catch (error) {
     console.error("❌ 직원 행 설정 오류:", error);
     throw error;
@@ -330,95 +300,82 @@ function setupEmployeeRows(sheet, employees, year, month) {
 }
 
 /**
- * 🎨 근무표 스타일 적용 (공휴일 포함)
+ * 📅 이전 달 잔여 연차 조회
+ */
+function getPreviousMonthRemaining(empId, year, month) {
+  try {
+    // 이전 달 계산
+    let prevYear = year;
+    let prevMonth = month - 1;
+
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = year - 1;
+    }
+
+    // 이전 달 근무표 시트명 생성
+    const prevMonthStr = prevMonth.toString().padStart(2, "0");
+    const prevSheetName = `근무표_${prevYear}_${prevMonthStr}`;
+
+    // 이전 달 시트 존재 확인
+    const prevSheet = getSheetIfExists(prevSheetName);
+    if (!prevSheet) {
+      console.log(`⚠️ 이전 달 근무표 없음: ${prevSheetName}`);
+      return parseInt(getSystemSetting("기본연차일수", 15)); // 기본값 반환
+    }
+
+    // 이전 달 데이터에서 해당 직원의 잔여 찾기
+    const prevData = prevSheet.getDataRange().getValues();
+
+    for (let i = 3; i < prevData.length; i++) {
+      // 4행부터 직원 데이터
+      if (prevData[i][0] == empId) {
+        // 사번 일치
+        const remaining = prevData[i][prevData[i].length - 3]; // 잔여 열 (마지막에서 3번째)
+        return remaining || parseInt(getSystemSetting("기본연차일수", 15));
+      }
+    }
+
+    console.log(`⚠️ 이전 달 데이터에서 직원 ${empId} 찾을 수 없음`);
+    return parseInt(getSystemSetting("기본연차일수", 15));
+  } catch (error) {
+    console.error("❌ 이전 달 잔여 조회 오류:", error);
+    return parseInt(getSystemSetting("기본연차일수", 15));
+  }
+}
+
+/**
+ * 🎨 근무표 스타일 적용 (셀 병합, 중앙정렬, 색상, 테두리)
  */
 function applyWorkScheduleStyles(sheet, year, month) {
   try {
-    console.log("🎨 근무표 스타일 적용 중...");
-
     const lastDay = new Date(year, month, 0).getDate();
-    const totalColumns = 4 + lastDay + 3; // 기본정보(4) + 날짜 + 사용/잔여/비고(3)
-
-    // 1행 제목 스타일
-    const titleRange = sheet.getRange(1, 1, 1, totalColumns);
-    titleRange.merge();
-    titleRange.setBackground("#667eea");
-    titleRange.setFontColor("white");
-    titleRange.setFontSize(14);
-    titleRange.setFontWeight("bold");
-    titleRange.setHorizontalAlignment("center");
-    titleRange.setVerticalAlignment("middle");
-
-    // 2-5행 헤더 스타일
-    const headerRange = sheet.getRange(2, 1, 4, totalColumns);
-    headerRange.setBackground("#e3f2fd");
-    headerRange.setFontWeight("bold");
-    headerRange.setHorizontalAlignment("center");
-    headerRange.setVerticalAlignment("middle");
-
-    // 직원 정보 열 스타일 (A-D열)
-    const employeeInfoRange = sheet.getRange(6, 1, sheet.getLastRow() - 5, 4);
-    employeeInfoRange.setBackground("#f8f9fa");
-
+    const totalColumns = 3 + lastDay + 4;
     // 날짜별 색상 적용
     for (let day = 1; day <= lastDay; day++) {
       const date = new Date(year, month - 1, day);
       const dayOfWeek = date.getDay();
-      const columnIndex = 4 + day; // 날짜 열 위치
-
-      // 해당 열의 범위
-      const columnRange = sheet.getRange(
-        2,
-        columnIndex,
-        sheet.getLastRow() - 1,
-        1
-      );
-
+      const col = 3 + day;
+      const range = sheet.getRange(2, col, sheet.getLastRow() - 1, 1);
       if (isHoliday(year, month, day)) {
-        // 공휴일 - 빨간색
-        columnRange.setBackground("#ffebee");
-        columnRange.setFontColor("#d32f2f");
-        columnRange.setFontWeight("bold");
+        range
+          .setBackground("#ffebee")
+          .setFontColor("#d32f2f")
+          .setFontWeight("bold");
       } else if (dayOfWeek === 0) {
-        // 일요일 - 빨간색
-        columnRange.setBackground("#ffebee");
-        columnRange.setFontColor("#d32f2f");
+        range.setBackground("#ffebee").setFontColor("#d32f2f");
       } else if (dayOfWeek === 6) {
-        // 토요일 - 파란색
-        columnRange.setBackground("#e3f2fd");
-        columnRange.setFontColor("#1976d2");
+        range.setBackground("#e3f2fd").setFontColor("#1976d2");
+      } else {
+        range.setBackground("#ffffff").setFontColor("#222");
       }
     }
-
-    // 테두리 설정
-    const allDataRange = sheet.getRange(1, 1, sheet.getLastRow(), totalColumns);
-    allDataRange.setBorder(true, true, true, true, true, true);
-
-    // 행 높이 조정
-    sheet.setRowHeight(1, 40); // 제목 행
-    for (let i = 2; i <= 5; i++) {
-      sheet.setRowHeight(i, 25); // 헤더 행들
-    }
-
-    // 열 너비 조정
-    sheet.setColumnWidth(1, 80); // 사번
-    sheet.setColumnWidth(2, 100); // 이름
-    sheet.setColumnWidth(3, 80); // 발생연차
-    sheet.setColumnWidth(4, 120); // 그전달까지 남은연차
-
-    // 날짜 열들 (좁게)
-    for (let day = 1; day <= lastDay; day++) {
-      sheet.setColumnWidth(4 + day, 35);
-    }
-
-    sheet.setColumnWidth(4 + lastDay + 1, 60); // 사용
-    sheet.setColumnWidth(4 + lastDay + 2, 60); // 잔여
-    sheet.setColumnWidth(4 + lastDay + 3, 100); // 비고
-
-    console.log("✅ 근무표 스타일 적용 완료");
+    // 테두리 전체
+    sheet
+      .getRange(1, 1, sheet.getLastRow(), totalColumns)
+      .setBorder(true, true, true, true, true, true);
   } catch (error) {
     console.error("❌ 근무표 스타일 적용 오류:", error);
-    // 스타일 오류는 치명적이지 않으므로 계속 진행
   }
 }
 
@@ -494,6 +451,27 @@ function testWorkScheduleCreation() {
 }
 
 /**
+ * 🧪 이전 달 잔여 조회 테스트
+ */
+function testPreviousMonthRemaining() {
+  try {
+    console.log("🧪 이전 달 잔여 조회 테스트");
+
+    const testEmpId = "1001";
+    const testYear = 2025;
+    const testMonth = 7;
+
+    const remaining = getPreviousMonthRemaining(testEmpId, testYear, testMonth);
+    console.log("이전 달 잔여:", remaining);
+
+    return { empId: testEmpId, remaining: remaining };
+  } catch (error) {
+    console.error("❌ 테스트 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
  * 🧪 공휴일 확인 테스트
  */
 function testHolidayCheck() {
@@ -545,34 +523,16 @@ function testWorkScheduleExists() {
  */
 function testWorkScheduleSystem() {
   try {
-    console.log("🧪 전체 근무표 시스템 테스트 시작");
-
-    const testDeptId = "10"; // 개발팀
-    const testYear = 2025;
-    const testMonth = 7;
+    console.log("🧪 전체 근무표 시스템 테스트");
 
     const results = {
-      timestamp: new Date().toISOString(),
-      tests: {},
+      creation: testWorkScheduleCreation(),
+      previousRemaining: testPreviousMonthRemaining(),
+      holidays: getHolidays(2025),
+      isHoliday: isHoliday(2025, 7, 15), // 7월 15일 공휴일 확인
     };
 
-    // 1. 공휴일 테스트
-    console.log("1. 공휴일 테스트");
-    results.tests.holiday = testHolidayCheck();
-
-    // 2. 근무표 존재 확인 테스트
-    console.log("2. 근무표 존재 확인 테스트");
-    results.tests.exists = testWorkScheduleExists();
-
-    // 3. 근무표 생성 테스트
-    console.log("3. 근무표 생성 테스트");
-    results.tests.creation = testWorkScheduleCreation();
-
-    // 4. 생성 후 존재 확인 테스트
-    console.log("4. 생성 후 존재 확인 테스트");
-    results.tests.existsAfterCreation = testWorkScheduleExists();
-
-    console.log("✅ 전체 테스트 완료:", results);
+    console.log("전체 테스트 결과:", results);
     return results;
   } catch (error) {
     console.error("❌ 전체 테스트 오류:", error);
