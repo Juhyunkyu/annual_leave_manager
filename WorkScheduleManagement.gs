@@ -228,17 +228,12 @@ function setupWorkScheduleHeader(sheet, department, year, month) {
 
     // 2행: 메인 헤더
     const mainHeaders = ["사번", "이름", "발생"];
-
-    // 날짜 헤더 추가 (1일부터 마지막 날까지)
-    for (let day = 1; day <= lastDay; day++) {
-      mainHeaders.push(`${day}`);
-    }
-
+    for (let day = 1; day <= lastDay; day++) mainHeaders.push(`${day}`);
     mainHeaders.push("사용", "", "잔여", "비고");
     sheet.getRange(2, 1, 1, mainHeaders.length).setValues([mainHeaders]);
 
     // 3행: 서브 헤더 (요일)
-    const subHeaders = ["", "Y", ""];
+    const subHeaders = ["", "", "Y"];
     for (let day = 1; day <= lastDay; day++) {
       const date = new Date(year, month - 1, day);
       const dayOfWeek = ["일", "월", "화", "수", "목", "금", "토"][
@@ -256,6 +251,12 @@ function setupWorkScheduleHeader(sheet, department, year, month) {
       .setFontWeight("bold")
       .setHorizontalAlignment("center")
       .setVerticalAlignment("middle");
+
+    // 셀 병합: A2:A3, B2:B3, AI2:AJ2
+    sheet.getRange(2, 1, 2, 1).merge(); // A2:A3
+    sheet.getRange(2, 2, 2, 1).merge(); // B2:B3
+    const aiCol = 3 + lastDay + 1;
+    sheet.getRange(2, aiCol, 1, 2).merge(); // AI2:AJ2
   } catch (error) {
     console.error("❌ 근무표 헤더 설정 오류:", error);
     throw error;
@@ -351,7 +352,7 @@ function applyWorkScheduleStyles(sheet, year, month) {
   try {
     const lastDay = new Date(year, month, 0).getDate();
     const totalColumns = 3 + lastDay + 4;
-    // 날짜별 색상 적용
+    // 날짜별 색상 적용 (생략)
     for (let day = 1; day <= lastDay; day++) {
       const date = new Date(year, month - 1, day);
       const dayOfWeek = date.getDay();
@@ -370,6 +371,19 @@ function applyWorkScheduleStyles(sheet, year, month) {
         range.setBackground("#ffffff").setFontColor("#222");
       }
     }
+    // 열 너비 조정
+    sheet.setColumnWidth(1, 60); // 사번
+    sheet.setColumnWidth(2, 80); // 이름
+    sheet.setColumnWidth(3, 60); // 발생
+    for (let day = 1; day <= lastDay; day++) {
+      sheet.setColumnWidth(3 + day, 28); // 날짜 열
+    }
+    sheet.setColumnWidth(3 + lastDay + 1, 40); // 사용
+    sheet.setColumnWidth(3 + lastDay + 2, 40); // Y/2
+    sheet.setColumnWidth(3 + lastDay + 3, 50); // 잔여
+    sheet.setColumnWidth(3 + lastDay + 4, 120); // 비고
+    // 전체 폰트 크기 줄이기
+    sheet.getRange(1, 1, sheet.getLastRow(), totalColumns).setFontSize(9);
     // 테두리 전체
     sheet
       .getRange(1, 1, sheet.getLastRow(), totalColumns)
