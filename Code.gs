@@ -2120,3 +2120,27 @@ function moveEmployeeDepartment(moveData) {
     };
   }
 }
+
+/**
+ * 특정 시트를 엑셀(xlsx)로 변환하여 다운로드 링크 반환
+ */
+function exportWorkScheduleToExcel(sheetName) {
+  try {
+    var spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = spreadsheet.getSheetByName(sheetName);
+    if (!sheet) {
+      return { success: false, error: "시트를 찾을 수 없습니다." };
+    }
+
+    // 원본 스프레드시트에서 직접 내보내기 (권한 문제 해결)
+    var downloadUrl =
+      "https://docs.google.com/spreadsheets/d/" +
+      SHEET_ID +
+      "/export?format=xlsx&gid=" +
+      sheet.getSheetId();
+
+    return { success: true, url: downloadUrl };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}

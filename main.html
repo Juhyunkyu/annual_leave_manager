@@ -497,6 +497,42 @@
     }
     
     .work-day {
+    
+    /* 📊 엑셀 다운로드 버튼 스타일 */
+    .excel-download-section {
+      margin-top: 2rem;
+      text-align: center;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px;
+      border: 2px dashed #dee2e6;
+    }
+    
+    .excel-download-section .btn-success {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .excel-download-section .btn-success:hover {
+      background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    }
+    
+    .excel-download-section .btn-success:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    }
+
+
       background: #e3f2fd;
       color: #1976d2;
     }
@@ -3162,6 +3198,8 @@
         </div>
       </div>
     </div>
+
+
 
     <!-- 👤 내 정보 페이지 -->
     <div id="myInfoPage" class="page">
@@ -5842,7 +5880,7 @@
     }
 
     /**
-     * 📅 근무표 표시 (개선된 버전)
+     * 📅 근무표 표시 (개선된 버전) - 엑셀 다운로드 버튼 추가
      */
     function displayWorkSchedule(scheduleData) {
       const container = document.getElementById('workScheduleContainer');
@@ -5899,7 +5937,19 @@
       
       tableHTML += '</tbody></table>';
       
-      container.innerHTML = tableHTML;
+      // 엑셀 다운로드 버튼 추가
+      const downloadButtonHTML = `
+        <div class="excel-download-section" style="margin-top: 2rem; text-align: center;">
+          <button type="button" class="btn btn-success" onclick="downloadWorkScheduleExcel()" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
+            📊 엑셀 다운로드
+          </button>
+          <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">
+            💡 선택한 부서/월의 근무표를 엑셀 파일로 다운로드합니다.
+          </p>
+        </div>
+      `;
+      
+      container.innerHTML = tableHTML + downloadButtonHTML;
     }
 
     /**
@@ -6091,6 +6141,74 @@
         </div>
       `;
     }
+
+    /**
+     * 📊 엑셀 다운로드 함수
+     */
+    async function downloadWorkScheduleExcel() {
+      try {
+        console.log('📊 엑셀 다운로드 시작...');
+        
+        // 현재 선택된 월과 부서 정보 가져오기
+        const scheduleMonth = document.getElementById('scheduleMonth').value;
+        const userDeptId = window.currentUserDeptId;
+        
+        if (!userDeptId || !scheduleMonth) {
+          showNotification('부서 정보와 월을 선택해주세요.', 'error');
+          return;
+        }
+        
+        const [year, month] = scheduleMonth.split('-');
+        
+        // 서버에서 정확한 시트명을 가져오기 위해 부서 정보 조회
+        const deptInfo = await callServerFunction('getDepartmentById', userDeptId);
+        if (!deptInfo) {
+          showNotification('부서 정보를 찾을 수 없습니다.', 'error');
+          return;
+        }
+        
+        // 시트명 생성 (부서명_연도_월 형식) - 서버와 동일한 방식
+        const sheetName = `${deptInfo.deptName}_${year}_${month.padStart(2, '0')}`;
+        
+        console.log('📋 다운로드 정보:', {
+          sheetName: sheetName,
+          deptId: userDeptId,
+          deptName: deptInfo.deptName,
+          year: year,
+          month: month
+        });
+        
+        // 로딩 상태 표시
+        showNotification('엑셀 파일을 생성하는 중입니다...', 'info');
+        
+        // 서버 함수 호출
+        const result = await callServerFunction('exportWorkScheduleToExcel', sheetName);
+        
+        if (result.success && result.url) {
+          console.log('✅ 엑셀 다운로드 성공:', result.url);
+          
+          // 직접 다운로드 실행
+          const link = document.createElement('a');
+          link.href = result.url;
+          link.download = sheetName + '.xlsx';
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          showNotification('엑셀 파일이 다운로드되었습니다.', 'success');
+        } else {
+          console.error('❌ 엑셀 다운로드 실패:', result.error);
+          showNotification('엑셀 파일 생성에 실패했습니다: ' + (result.error || '알 수 없는 오류'), 'error');
+        }
+        
+      } catch (error) {
+        console.error('❌ 엑셀 다운로드 오류:', error);
+        showNotification('엑셀 다운로드 중 오류가 발생했습니다: ' + error.message, 'error');
+      }
+    }
+
+
 
     // =====================================
     // 🔧 관리자 기능 함수들
