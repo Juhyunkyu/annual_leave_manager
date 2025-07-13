@@ -1702,40 +1702,6 @@ function getDepartmentStatistics() {
 }
 
 /**
- * 🧪 임시 디버깅 함수 - 직원 데이터 확인
- */
-function testEmployeeData() {
-  try {
-    console.log("=== 직원 데이터 테스트 시작 ===");
-
-    // 1. 직원 시트 원본 데이터 확인
-    const empSheet = getSheet("Employees");
-    const empData = empSheet.getDataRange().getValues();
-    console.log("직원 시트 원본 데이터:", empData);
-
-    // 2. 부서 시트 원본 데이터 확인
-    const deptSheet = getSheet("Departments");
-    const deptData = deptSheet.getDataRange().getValues();
-    console.log("부서 시트 원본 데이터:", deptData);
-
-    // 3. getAllEmployees 함수 결과 확인
-    const employees = getAllEmployees();
-    console.log("getAllEmployees 결과:", employees);
-    console.log("직원 수:", employees.length);
-
-    return {
-      empData: empData,
-      deptData: deptData,
-      employees: employees,
-      employeeCount: employees.length,
-    };
-  } catch (error) {
-    console.error("테스트 오류:", error);
-    return { error: error.message };
-  }
-}
-
-/**
  * 🔧 웹앱용 getAllEmployees 래퍼 함수 (날짜 직렬화 처리 + 최신순 정렬)
  */
 function getEmployeesForWeb() {
@@ -1777,36 +1743,6 @@ function getEmployeesForWeb() {
     console.error("오류 스택:", error.stack);
     return [];
   }
-}
-
-/**
- * 🧪 임시 하드코딩 테스트 함수
- */
-function getEmployeesHardcoded() {
-  return [
-    {
-      empId: "1001",
-      name: "홍길동",
-      email: "dandy_jhk@naver.com",
-      phone: "010-2616-3096",
-      deptId: "10",
-      deptName: "개발팀",
-      joinDate: "2025-07-03",
-      position: "과장",
-      passwordHash: "",
-    },
-    {
-      empId: "1002",
-      name: "날라리",
-      email: "hhh@naver.com",
-      phone: "010-2222-3333",
-      deptId: "20",
-      deptName: "영업팀",
-      joinDate: "2025-07-04",
-      position: "팀장",
-      passwordHash: "",
-    },
-  ];
 }
 
 /**

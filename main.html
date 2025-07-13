@@ -4325,9 +4325,6 @@
             
             // 최근 신청 내역 로드
             loadRecentRequests();
-            
-            // 최근 신청 내역 로드
-            loadRecentRequests();
           }
         }
         
@@ -4410,10 +4407,13 @@
      */
     function loadPageData(pageId) {
       try {
-        // 페이지 전환 전 모든 모달 닫기
+        // 페이지 전환 전 관리 모달만 닫기 (알림 모달은 제외)
         const modals = document.querySelectorAll('.modal-overlay');
         modals.forEach(modal => {
+          // 알림 모달은 건드리지 않음
+          if (modal.id !== 'notificationModal') {
           modal.style.display = 'none';
+          }
         });
 
         switch (pageId) {

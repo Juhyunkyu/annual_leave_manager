@@ -327,23 +327,37 @@ function setupEmployeeRows(sheet, employees, year, month) {
     employees.forEach((employee, index) => {
       const rowIndex = 4 + index; // 4행부터
 
-      // 이전 달 잔여 연차를 발생 연차로 설정
-      const previousRemaining = getPreviousMonthRemaining(
+      // 1. 발생 연차 계산 (현재 달 연차 제외한 남은 연차)
+      const earnedLeaves = calculateEarnedLeaves(employee.empId, year, month);
+      const usedUntilPreviousMonth = getUsedLeavesUntilMonth(
         employee.empId,
         year,
         month
       );
-      const rowData = [employee.empId, employee.name, previousRemaining];
+      const earnedRemaining = Math.max(
+        0,
+        earnedLeaves - usedUntilPreviousMonth
+      );
+
+      // 2. 해당 월의 사용 연차 계산 (연차와 반차 구분)
+      const monthlyUsage = getMonthlyUsedLeaves(employee.empId, year, month);
+      const usedFullDays = monthlyUsage.fullDays; // 연차 일수 (예: Y가 3개면 3)
+      const usedHalfDays = monthlyUsage.halfDays; // 반차 일수 (예: Y/2[0.5]가 2개면 1)
+
+      // 3. 잔여 연차 계산 (발생 - 사용)
+      const remainingDays = Math.max(
+        0,
+        earnedRemaining - monthlyUsage.totalUsed
+      );
+
+      const rowData = [employee.empId, employee.name, earnedRemaining];
 
       // 해당 직원의 승인된 연차 정보 찾기
       const employeeLeaves = approvedLeaves.filter(
         (leave) => leave.empId === employee.empId
       );
 
-      // 해당 월의 연차 사용 일수 계산 (연차와 반차 구분)
-      let usedFullDays = 0; // 연차 일수
-      let usedHalfDays = 0; // 반차 일수
-
+      // 날짜별 연차 표시
       for (let day = 1; day <= lastDay; day++) {
         const date = new Date(year, month - 1, day);
         const dayOfWeek = date.getDay();
@@ -355,13 +369,10 @@ function setupEmployeeRows(sheet, employees, year, month) {
           if (currentDate >= leave.startDate && currentDate <= leave.endDate) {
             if (leave.leaveType === "연차") {
               leaveMark = "Y";
-              usedFullDays += 1;
             } else if (leave.leaveType === "반차") {
               leaveMark = "Y/2";
-              usedHalfDays += 0.5;
             } else {
               leaveMark = "Y"; // 기타 연차 종류도 Y로 표시
-              usedFullDays += 1;
             }
             break;
           }
@@ -378,16 +389,20 @@ function setupEmployeeRows(sheet, employees, year, month) {
         }
       }
 
-      // 총 사용 연차 일수 (연차 + 반차)
-      const totalUsedDays = usedFullDays + usedHalfDays;
-
-      // 잔여 연차 계산 (발생 - 사용)
-      const remainingDays = Math.max(0, previousRemaining - totalUsedDays);
-
       // 데이터 추가: [사용, Y/2, 잔여, 비고]
       rowData.push(usedFullDays, usedHalfDays, remainingDays, "");
 
       sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+
+      console.log(
+        `📊 직원 ${employee.name} (${employee.empId}) 근무표 데이터:`,
+        {
+          earnedRemaining: earnedRemaining,
+          usedFullDays: usedFullDays,
+          usedHalfDays: usedHalfDays,
+          remainingDays: remainingDays,
+        }
+      );
     });
 
     // 직원 데이터 중앙정렬
@@ -403,23 +418,14 @@ function setupEmployeeRows(sheet, employees, year, month) {
 }
 
 /**
- * 📅 이전 달 잔여 연차 조회 (개선된 버전)
+ * 📅 발생 연차 계산 (현재 달 연차 제외)
  */
-function getPreviousMonthRemaining(empId, year, month) {
+function calculateEarnedLeaves(empId, year, month) {
   try {
-    // 이전 달 계산
-    let prevYear = year;
-    let prevMonth = month - 1;
-
-    if (prevMonth === 0) {
-      prevMonth = 12;
-      prevYear = year - 1;
-    }
-
     // 기본 연차 일수 (시스템 설정에서 가져오기)
     const basicLeaves = parseInt(getSystemSetting("기본연차일수", 15));
 
-    // 입사일 기준 연차 계산 (간단한 버전)
+    // 직원 정보 조회
     const employee = getEmployee(empId);
     if (!employee) {
       console.log(`⚠️ 직원 ${empId} 정보를 찾을 수 없음`);
@@ -445,30 +451,22 @@ function getPreviousMonthRemaining(empId, year, month) {
       totalEarned = basicLeaves;
     }
 
-    // 이전 달까지 사용한 연차 일수 계산
-    const usedLeaves = getUsedLeavesUntilMonth(empId, prevYear, prevMonth);
-
-    // 잔여 연차 = 발생 연차 - 사용 연차
-    const remaining = Math.max(0, totalEarned - usedLeaves);
-
-    console.log(`📊 직원 ${empId} 연차 계산:`, {
+    console.log(`📊 직원 ${empId} 발생 연차 계산:`, {
       empId: empId,
       joinDate: employee.joinDate,
       monthsDiff: monthsDiff,
       totalEarned: totalEarned,
-      usedLeaves: usedLeaves,
-      remaining: remaining,
     });
 
-    return remaining;
+    return totalEarned;
   } catch (error) {
-    console.error("❌ 이전 달 잔여 조회 오류:", error);
+    console.error("❌ 발생 연차 계산 오류:", error);
     return parseInt(getSystemSetting("기본연차일수", 15));
   }
 }
 
 /**
- * 📅 특정 월까지 사용한 연차 일수 계산
+ * 📅 이전 달까지 사용한 연차 계산
  */
 function getUsedLeavesUntilMonth(empId, year, month) {
   try {
@@ -476,34 +474,23 @@ function getUsedLeavesUntilMonth(empId, year, month) {
     const data = requestSheet.getDataRange().getValues();
     let totalUsed = 0;
 
+    // 해당 월 이전까지의 사용 연차 계산
+    const targetDate = new Date(year, month, 0); // 해당 월 마지막 날
+
     for (let i = 1; i < data.length; i++) {
       const request = data[i];
       const status = request[7]; // 상태 컬럼
       const requestEmpId = request[1]; // 직원 ID
 
-      if (status === "승인" && requestEmpId === empId) {
+      if (status === "승인" && requestEmpId.toString() === empId.toString()) {
         const startDate = new Date(request[2]); // 시작일
         const endDate = new Date(request[3]); // 종료일
         const leaveType = request[5]; // 연차 종류
 
-        // 해당 월까지의 사용 연차 계산
-        const targetDate = new Date(year, month, 0); // 해당 월 마지막 날
-
+        // 해당 월 이전에 끝난 연차만 계산
         if (endDate <= targetDate) {
-          // 해당 월 이전에 끝난 연차는 전체 일수 계산
           const daysDiff =
             Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-
-          if (leaveType === "반차") {
-            totalUsed += daysDiff * 0.5;
-          } else {
-            totalUsed += daysDiff;
-          }
-        } else if (startDate <= targetDate) {
-          // 해당 월에 걸쳐있는 연차는 해당 월까지의 일수만 계산
-          const effectiveEnd = targetDate;
-          const daysDiff =
-            Math.ceil((effectiveEnd - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
           if (leaveType === "반차") {
             totalUsed += daysDiff * 0.5;
@@ -518,6 +505,113 @@ function getUsedLeavesUntilMonth(empId, year, month) {
   } catch (error) {
     console.error("❌ 사용 연차 계산 오류:", error);
     return 0;
+  }
+}
+
+/**
+ * 📅 발생 연차 계산 (현재 달 연차 제외)
+ */
+function getPreviousMonthRemaining(empId, year, month) {
+  try {
+    // 발생 연차 계산
+    const earnedLeaves = calculateEarnedLeaves(empId, year, month);
+
+    // 이전 달까지 사용한 연차 계산
+    let prevYear = year;
+    let prevMonth = month - 1;
+
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = year - 1;
+    }
+
+    const usedLeaves = getUsedLeavesUntilMonth(empId, prevYear, prevMonth);
+
+    // 잔여 연차 = 발생 연차 - 사용 연차
+    const remaining = Math.max(0, earnedLeaves - usedLeaves);
+
+    console.log(`📊 직원 ${empId} 잔여 연차 계산:`, {
+      empId: empId,
+      earnedLeaves: earnedLeaves,
+      usedLeaves: usedLeaves,
+      remaining: remaining,
+    });
+
+    return remaining;
+  } catch (error) {
+    console.error("❌ 잔여 연차 계산 오류:", error);
+    return parseInt(getSystemSetting("기본연차일수", 15));
+  }
+}
+
+/**
+ * 📅 해당 월의 사용 연차 계산 (연차와 반차 구분)
+ */
+function getMonthlyUsedLeaves(empId, year, month) {
+  try {
+    const requestSheet = getSheet("LeaveRequests");
+    const data = requestSheet.getDataRange().getValues();
+    let usedFullDays = 0; // 연차 일수 (예: Y가 3개면 3)
+    let usedHalfDays = 0; // 반차 일수 (예: Y/2[0.5]가 2개면 1)
+
+    // 해당 월의 시작일과 종료일
+    const monthStart = new Date(year, month - 1, 1);
+    const monthEnd = new Date(year, month, 0);
+
+    for (let i = 1; i < data.length; i++) {
+      const request = data[i];
+      const status = request[7]; // 상태 컬럼
+      const requestEmpId = request[1]; // 직원 ID
+
+      if (status === "승인" && requestEmpId.toString() === empId.toString()) {
+        const startDate = new Date(request[2]); // 시작일
+        const endDate = new Date(request[3]); // 종료일
+        const leaveType = request[5]; // 연차 종류
+
+        // 해당 월에 포함되는 연차만 계산
+        if (startDate <= monthEnd && endDate >= monthStart) {
+          // 해당 월에 포함되는 기간 계산
+          const effectiveStart =
+            startDate < monthStart ? monthStart : startDate;
+          const effectiveEnd = endDate > monthEnd ? monthEnd : endDate;
+
+          const daysDiff =
+            Math.ceil((effectiveEnd - effectiveStart) / (1000 * 60 * 60 * 24)) +
+            1;
+
+          if (leaveType === "반차") {
+            // 반차는 일수로 계산 (0.5일씩)
+            usedHalfDays += daysDiff * 0.5;
+          } else {
+            // 연차는 일수로 계산
+            usedFullDays += daysDiff;
+          }
+        }
+      }
+    }
+
+    // 총 사용 일수 계산 (Y + Y/2)
+    const totalUsedDays = usedFullDays + usedHalfDays;
+
+    console.log(`📊 직원 ${empId} ${year}년 ${month}월 사용 연차:`, {
+      empId: empId,
+      usedFullDays: usedFullDays,
+      usedHalfDays: usedHalfDays,
+      totalUsedDays: totalUsedDays,
+    });
+
+    return {
+      fullDays: usedFullDays,
+      halfDays: usedHalfDays,
+      totalUsed: totalUsedDays,
+    };
+  } catch (error) {
+    console.error("❌ 월별 사용 연차 계산 오류:", error);
+    return {
+      fullDays: 0,
+      halfDays: 0,
+      totalUsed: 0,
+    };
   }
 }
 
@@ -1083,5 +1177,398 @@ function testImprovedWorkSchedule() {
       success: false,
       error: error.message,
     };
+  }
+}
+
+/**
+ * 🧪 근무표 데이터 계산 테스트
+ */
+function testWorkScheduleCalculation(empId, year, month) {
+  try {
+    // 매개변수 기본값 설정 및 유효성 검사
+    if (typeof empId !== "string" || !empId) {
+      empId = "1001";
+      console.log("⚠️ empId 기본값 설정:", empId);
+    }
+
+    if (typeof year !== "number" || !year) {
+      year = 2025;
+      console.log("⚠️ year 기본값 설정:", year);
+    }
+
+    if (typeof month !== "number" || !month) {
+      month = 7;
+      console.log("⚠️ month 기본값 설정:", month);
+    }
+
+    // 타입 변환
+    year = Number(year);
+    month = Number(month);
+
+    console.log(`🧪 근무표 데이터 계산 테스트: ${empId}, ${year}년 ${month}월`);
+
+    // 직원 존재 여부 확인
+    const employee = getEmployee(empId);
+    if (!employee) {
+      console.error(`❌ 직원 ${empId}을 찾을 수 없습니다.`);
+      return { error: `직원 ${empId}을 찾을 수 없습니다.` };
+    }
+
+    console.log(`👤 직원 정보: ${employee.name} (${empId})`);
+
+    // 1. 발생 연차 계산
+    const earnedLeaves = calculateEarnedLeaves(empId, year, month);
+    console.log("1. 발생 연차:", earnedLeaves);
+
+    // 2. 이전 달까지 사용한 연차
+    let prevYear = year;
+    let prevMonth = month - 1;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = year - 1;
+    }
+    const usedUntilPreviousMonth = getUsedLeavesUntilMonth(
+      empId,
+      prevYear,
+      prevMonth
+    );
+    console.log("2. 이전 달까지 사용한 연차:", usedUntilPreviousMonth);
+
+    // 3. 발생 잔여 (발생 - 이전 달까지 사용)
+    const earnedRemaining = Math.max(0, earnedLeaves - usedUntilPreviousMonth);
+    console.log("3. 발생 잔여:", earnedRemaining);
+
+    // 4. 해당 월 사용 연차
+    const monthlyUsage = getMonthlyUsedLeaves(empId, year, month);
+    console.log("4. 해당 월 사용 연차:", monthlyUsage);
+
+    // 5. 최종 잔여 (발생 잔여 - 해당 월 사용)
+    const finalRemaining = Math.max(
+      0,
+      earnedRemaining - monthlyUsage.totalUsed
+    );
+    console.log("5. 최종 잔여:", finalRemaining);
+
+    const result = {
+      empId: empId,
+      employeeName: employee.name,
+      year: year,
+      month: month,
+      earnedLeaves: earnedLeaves,
+      usedUntilPreviousMonth: usedUntilPreviousMonth,
+      earnedRemaining: earnedRemaining,
+      monthlyUsage: monthlyUsage,
+      finalRemaining: finalRemaining,
+    };
+
+    console.log("📊 최종 테스트 결과:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ 근무표 데이터 계산 테스트 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 🧪 모든 직원의 근무표 데이터 계산 테스트
+ */
+function testAllEmployeesWorkSchedule(year, month) {
+  try {
+    // 매개변수 기본값 설정 및 유효성 검사
+    if (typeof year !== "number" || !year) {
+      year = 2025;
+      console.log("⚠️ year 기본값 설정:", year);
+    }
+
+    if (typeof month !== "number" || !month) {
+      month = 7;
+      console.log("⚠️ month 기본값 설정:", month);
+    }
+
+    // 타입 변환
+    year = Number(year);
+    month = Number(month);
+
+    console.log(`🧪 모든 직원 근무표 데이터 계산 테스트: ${year}년 ${month}월`);
+
+    const employees = getAllEmployees();
+    console.log(`👥 총 ${employees.length}명의 직원 데이터 계산 시작`);
+
+    const results = [];
+
+    employees.forEach((employee, index) => {
+      console.log(
+        `\n📊 ${index + 1}/${employees.length} - ${employee.name} (${
+          employee.empId
+        }) 계산 중...`
+      );
+
+      const result = testWorkScheduleCalculation(employee.empId, year, month);
+
+      if (result.error) {
+        console.error(`❌ ${employee.name} 계산 실패:`, result.error);
+        results.push({
+          empId: employee.empId,
+          name: employee.name,
+          error: result.error,
+        });
+      } else {
+        results.push({
+          empId: employee.empId,
+          name: employee.name,
+          ...result,
+        });
+      }
+    });
+
+    // 성공/실패 통계
+    const successCount = results.filter((r) => !r.error).length;
+    const errorCount = results.filter((r) => r.error).length;
+
+    console.log(`\n📊 전체 테스트 완료:`);
+    console.log(`✅ 성공: ${successCount}명`);
+    console.log(`❌ 실패: ${errorCount}명`);
+    console.log("📊 전체 테스트 결과:", results);
+
+    return {
+      totalEmployees: employees.length,
+      successCount: successCount,
+      errorCount: errorCount,
+      results: results,
+    };
+  } catch (error) {
+    console.error("❌ 전체 직원 근무표 데이터 계산 테스트 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 🧪 간단한 테스트 함수 (매개변수 없이 실행)
+ */
+function testSimple() {
+  try {
+    console.log("🧪 간단한 테스트 시작");
+
+    // 1. 기본값으로 테스트 실행
+    const result = testWorkScheduleCalculation();
+    console.log("✅ 데이터 계산 테스트 완료:", result);
+
+    // 2. 근무표 생성 테스트
+    console.log("📋 근무표 생성 테스트 시작...");
+    const createResult = createWorkScheduleSheet("10", 2025, 7); // 개발팀, 2025년 7월
+    console.log("📋 근무표 생성 결과:", createResult);
+
+    return {
+      calculation: result,
+      creation: createResult,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("❌ 간단한 테스트 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 🧪 전체 직원 간단 테스트 (매개변수 없이 실행)
+ */
+function testAllSimple() {
+  try {
+    console.log("🧪 전체 직원 간단 테스트 시작");
+
+    // 기본값으로 테스트 실행
+    const result = testAllEmployeesWorkSchedule();
+    console.log("✅ 전체 테스트 완료:", result);
+
+    return result;
+  } catch (error) {
+    console.error("❌ 전체 직원 간단 테스트 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 🧪 연차 데이터 확인 함수 (디버깅용)
+ */
+function checkLeaveRequestsData() {
+  try {
+    console.log("🔍 연차 데이터 확인 시작");
+
+    const requestSheet = getSheet("LeaveRequests");
+    const data = requestSheet.getDataRange().getValues();
+
+    console.log("📊 LeaveRequests 시트 데이터:");
+    console.log("- 전체 행 수:", data.length);
+    console.log("- 헤더:", data[0]);
+
+    // 승인된 연차 데이터만 필터링
+    const approvedRequests = [];
+    for (let i = 1; i < data.length; i++) {
+      const request = data[i];
+      if (request[7] === "승인") {
+        // 상태가 승인인 것만
+        approvedRequests.push({
+          reqId: request[0],
+          empId: request[1],
+          startDate: request[2],
+          endDate: request[3],
+          days: request[4],
+          leaveType: request[5],
+          reason: request[6],
+          status: request[7],
+          submitDate: request[8],
+        });
+      }
+    }
+
+    console.log("✅ 승인된 연차 신청:", approvedRequests.length + "건");
+    console.log("📋 승인된 연차 목록:", approvedRequests);
+
+    // 특정 직원의 연차 데이터 확인
+    const testEmpId = "1001";
+    const empRequests = approvedRequests.filter(
+      (req) => req.empId.toString() === testEmpId
+    );
+    console.log(`👤 직원 ${testEmpId}의 승인된 연차:`, empRequests);
+
+    return {
+      totalRequests: data.length - 1,
+      approvedRequests: approvedRequests.length,
+      testEmpRequests: empRequests.length,
+      sampleData: approvedRequests.slice(0, 3), // 처음 3개만 샘플로
+    };
+  } catch (error) {
+    console.error("❌ 연차 데이터 확인 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 🧪 근무표 계산 로직 테스트 (새로운 버전)
+ */
+function testWorkScheduleCalculationNew() {
+  try {
+    console.log("🧪 근무표 계산 로직 테스트 시작");
+
+    const testEmpId = "1001";
+    const testYear = 2025;
+    const testMonth = 7;
+
+    console.log(
+      `📊 테스트 조건: 직원 ${testEmpId}, ${testYear}년 ${testMonth}월`
+    );
+
+    // 1. 발생 연차 계산
+    const earnedLeaves = calculateEarnedLeaves(testEmpId, testYear, testMonth);
+    console.log("1. 발생 연차:", earnedLeaves);
+
+    // 2. 이전 달까지 사용한 연차
+    let prevYear = testYear;
+    let prevMonth = testMonth - 1;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = testYear - 1;
+    }
+    const usedUntilPreviousMonth = getUsedLeavesUntilMonth(
+      testEmpId,
+      prevYear,
+      prevMonth
+    );
+    console.log("2. 이전 달까지 사용한 연차:", usedUntilPreviousMonth);
+
+    // 3. 발생 잔여 (발생 - 이전 달까지 사용)
+    const earnedRemaining = Math.max(0, earnedLeaves - usedUntilPreviousMonth);
+    console.log("3. 발생 잔여:", earnedRemaining);
+
+    // 4. 해당 월 사용 연차 (새로운 계산법)
+    const monthlyUsage = getMonthlyUsedLeaves(testEmpId, testYear, testMonth);
+    console.log("4. 해당 월 사용 연차:", monthlyUsage);
+
+    // 5. 최종 잔여 (발생 잔여 - 해당 월 사용)
+    const finalRemaining = Math.max(
+      0,
+      earnedRemaining - monthlyUsage.totalUsed
+    );
+    console.log("5. 최종 잔여:", finalRemaining);
+
+    // 6. 근무표에 표시될 데이터
+    const workScheduleData = {
+      발생: earnedRemaining,
+      사용_Y: monthlyUsage.fullDays,
+      사용_Y2: monthlyUsage.halfDays,
+      잔여: finalRemaining,
+    };
+
+    console.log("📋 근무표에 표시될 데이터:", workScheduleData);
+
+    // 7. 계산 검증
+    const verification = {
+      계산식: `${earnedRemaining} - (${monthlyUsage.fullDays} + ${monthlyUsage.halfDays}) = ${finalRemaining}`,
+      검증결과:
+        Math.abs(
+          finalRemaining -
+            (earnedRemaining - (monthlyUsage.fullDays + monthlyUsage.halfDays))
+        ) < 0.01
+          ? "✅ 정확"
+          : "❌ 오류",
+    };
+
+    console.log("🔍 계산 검증:", verification);
+
+    return {
+      empId: testEmpId,
+      year: testYear,
+      month: testMonth,
+      earnedLeaves: earnedLeaves,
+      usedUntilPreviousMonth: usedUntilPreviousMonth,
+      earnedRemaining: earnedRemaining,
+      monthlyUsage: monthlyUsage,
+      finalRemaining: finalRemaining,
+      workScheduleData: workScheduleData,
+      verification: verification,
+    };
+  } catch (error) {
+    console.error("❌ 근무표 계산 로직 테스트 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 🧪 근무표 생성 및 데이터 확인 테스트
+ */
+function testWorkScheduleWithData() {
+  try {
+    console.log("🧪 근무표 생성 및 데이터 확인 테스트 시작");
+
+    // 1. 연차 데이터 확인
+    console.log("📊 1단계: 연차 데이터 확인");
+    const leaveData = checkLeaveRequestsData();
+    console.log("연차 데이터 결과:", leaveData);
+
+    // 2. 계산 로직 테스트
+    console.log("📊 2단계: 계산 로직 테스트");
+    const calculationResult = testWorkScheduleCalculationNew();
+    console.log("계산 결과:", calculationResult);
+
+    // 3. 근무표 생성
+    console.log("📊 3단계: 근무표 생성");
+    const createResult = createWorkScheduleSheet("10", 2025, 7); // 개발팀, 2025년 7월
+    console.log("근무표 생성 결과:", createResult);
+
+    // 4. 생성된 근무표 데이터 확인
+    console.log("📊 4단계: 생성된 근무표 데이터 확인");
+    const workScheduleData = getWorkScheduleData("10", 2025, 7);
+    console.log("근무표 데이터:", workScheduleData);
+
+    return {
+      leaveData: leaveData,
+      calculationResult: calculationResult,
+      createResult: createResult,
+      workScheduleData: workScheduleData,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("❌ 근무표 생성 및 데이터 확인 테스트 오류:", error);
+    return { error: error.message };
   }
 }
