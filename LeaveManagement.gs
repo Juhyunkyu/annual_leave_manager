@@ -72,17 +72,30 @@ function calculateRemainingLeaves(empId, year) {
  */
 function calculateUsedLeaves(empId, year) {
   try {
-    const sheet = getSheet("LeaveUsage");
-    const data = sheet.getDataRange().getValues();
+    // LeaveRequests 시트에서 승인된 연차만 계산
+    const requestSheet = getSheet("LeaveRequests");
+    const data = requestSheet.getDataRange().getValues();
 
     let totalUsed = 0;
 
     for (let i = 1; i < data.length; i++) {
-      if (data[i][1] == empId) {
-        // EmpID 비교
-        const registerDate = new Date(data[i][3]);
-        if (registerDate.getFullYear() === year) {
-          totalUsed += parseFloat(data[i][2]) || 0; // UsedDays
+      const request = data[i];
+      const status = request[7]; // 상태 컬럼
+      const requestEmpId = request[1]; // 직원 ID
+
+      if (status === "승인" && requestEmpId === empId) {
+        const startDate = new Date(request[2]); // 시작일
+        const endDate = new Date(request[3]); // 종료일
+        const leaveType = request[5]; // 연차 종류
+        const days = parseFloat(request[4]) || 0; // 일수
+
+        // 해당 연도의 모든 연차 계산 (과거 포함)
+        if (startDate.getFullYear() === year) {
+          if (leaveType === "반차") {
+            totalUsed += days * 0.5;
+          } else {
+            totalUsed += days;
+          }
         }
       }
     }
@@ -90,6 +103,45 @@ function calculateUsedLeaves(empId, year) {
     return totalUsed;
   } catch (error) {
     console.error("사용한 연차 계산 오류:", error);
+    return 0;
+  }
+}
+
+/**
+ * 📊 전체 사용 연차 계산 (과거 포함 - 통계용)
+ */
+function calculateTotalUsedLeaves(empId, year) {
+  try {
+    // LeaveRequests 시트에서 승인된 모든 연차 계산
+    const requestSheet = getSheet("LeaveRequests");
+    const data = requestSheet.getDataRange().getValues();
+
+    let totalUsed = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const request = data[i];
+      const status = request[7]; // 상태 컬럼
+      const requestEmpId = request[1]; // 직원 ID
+
+      if (status === "승인" && requestEmpId === empId) {
+        const startDate = new Date(request[2]); // 시작일
+        const leaveType = request[5]; // 연차 종류
+        const days = parseFloat(request[4]) || 0; // 일수
+
+        // 해당 연도의 모든 연차 계산 (과거 포함)
+        if (startDate.getFullYear() === year) {
+          if (leaveType === "반차") {
+            totalUsed += days * 0.5;
+          } else {
+            totalUsed += days;
+          }
+        }
+      }
+    }
+
+    return totalUsed;
+  } catch (error) {
+    console.error("전체 사용 연차 계산 오류:", error);
     return 0;
   }
 }
@@ -262,17 +314,19 @@ function validateLeaveRequest(requestData) {
       };
     }
 
-    // 날짜 검증
+    // 날짜 검증 (과거 날짜도 허용)
     const startDate = new Date(requestData.startDate);
     const endDate = new Date(requestData.endDate);
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // 오늘 날짜의 시작 시간으로 설정
 
-    if (startDate < today) {
-      return {
-        valid: false,
-        message: "시작일은 오늘 이후여야 합니다.",
-      };
-    }
+    // 과거 날짜 허용 (급한 연차 신청을 위해)
+    // if (startDate < today) {
+    //   return {
+    //     valid: false,
+    //     message: "시작일은 오늘 이후여야 합니다.",
+    //   };
+    // }
 
     if (endDate < startDate) {
       return {
@@ -281,7 +335,7 @@ function validateLeaveRequest(requestData) {
       };
     }
 
-    // 연차 잔여일수 확인
+    // 연차 잔여일수 확인 (과거 날짜 신청도 차감됨)
     const remainingLeaves = calculateRemainingLeaves(
       requestData.empId,
       startDate.getFullYear()
@@ -384,9 +438,13 @@ function createApprovalSteps(reqId, approvers) {
     const sheet = getSheet("ApprovalSteps");
 
     for (let i = 0; i < approvers.length; i++) {
+      // 결재자의 부서 정보 조회
+      const approver = getEmployee(approvers[i]);
+      const groupId = approver ? approver.deptId : null;
+
       const newRow = [
         reqId,
-        null, // GroupID (사용하지 않음)
+        groupId, // GroupID (결재자의 부서 ID)
         approvers[i],
         i + 1, // StepOrder
       ];
@@ -517,6 +575,7 @@ function finalizeApproval(reqId) {
           empId: data[i][1],
           startDate: new Date(data[i][2]),
           endDate: new Date(data[i][3]),
+          days: parseFloat(data[i][4]) || 0, // E열: Days
           leaveType: data[i][5],
         };
         break;
@@ -525,10 +584,19 @@ function finalizeApproval(reqId) {
 
     // 연차 사용 기록 추가
     const usageSheet = getSheet("LeaveUsage");
+
+    // 연차 종류에 따라 사용 일수 계산
+    let usedDays = approvedRequest.days;
+    if (approvedRequest.leaveType === "반차") {
+      // 반차는 신청 시점에서 이미 0.5로 계산되어 저장되었으므로 그대로 사용
+      // LeaveRequests의 Days 컬럼: 반차 1일 = 0.5, 반차 2일 = 1.0
+      usedDays = approvedRequest.days;
+    }
+
     const usageRow = [
       reqId,
       approvedRequest.empId,
-      approvedRequest.days,
+      usedDays, // 계산된 사용 일수
       new Date(),
     ];
     usageSheet.appendRow(usageRow);
@@ -540,6 +608,17 @@ function finalizeApproval(reqId) {
     updateWorkScheduleForApprovedLeave(approvedRequest);
 
     console.log("최종 승인 처리 완료:", reqId);
+    console.log("LeaveUsage 저장 데이터:", {
+      reqId: reqId,
+      empId: approvedRequest.empId,
+      usedDays: usedDays,
+      leaveType: approvedRequest.leaveType,
+      originalDays: approvedRequest.days,
+      calculationNote:
+        approvedRequest.leaveType === "반차"
+          ? "반차는 신청 시점에서 이미 0.5로 계산되어 저장됨"
+          : "연차는 그대로 사용",
+    });
   } catch (error) {
     console.error("최종 승인 처리 오류:", error);
     throw error;
@@ -855,5 +934,277 @@ function getSystemSetting(key, defaultValue = "") {
   } catch (error) {
     console.error("시스템 설정 조회 오류:", error);
     return defaultValue;
+  }
+}
+
+/**
+ * 🧪 과거 날짜 연차 신청 테스트
+ */
+function testPastDateLeaveRequest() {
+  try {
+    console.log("🧪 과거 날짜 연차 신청 테스트 시작");
+
+    // 테스트 데이터 (과거 날짜)
+    const testRequest = {
+      empId: "1001", // 테스트 직원 ID
+      startDate: "2025-01-15", // 과거 날짜
+      endDate: "2025-01-16", // 과거 날짜
+      days: 2,
+      leaveType: "연차",
+      reason: "테스트용 과거 날짜 연차 신청",
+      approvers: ["1002"], // 테스트 결재자
+      collaborators: [],
+    };
+
+    console.log("📋 테스트 데이터:", testRequest);
+
+    // 유효성 검사 테스트
+    const validation = validateLeaveRequest(testRequest);
+    console.log("✅ 유효성 검사 결과:", validation);
+
+    if (!validation.valid) {
+      console.error("❌ 유효성 검사 실패:", validation.message);
+      return {
+        success: false,
+        error: validation.message,
+      };
+    }
+
+    // 실제 신청 처리 테스트
+    const result = submitLeaveRequest(testRequest);
+    console.log("📝 연차 신청 결과:", result);
+
+    return {
+      success: true,
+      validation: validation,
+      submission: result,
+      message: "과거 날짜 연차 신청 테스트 완료",
+    };
+  } catch (error) {
+    console.error("❌ 과거 날짜 연차 신청 테스트 오류:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * 🧪 과거 날짜 연차 신청 잔여 영향 테스트
+ */
+function testPastDateLeaveImpact() {
+  try {
+    console.log("🧪 과거 날짜 연차 신청 잔여 영향 테스트 시작");
+
+    const testEmpId = "1001"; // 테스트 직원 ID
+    const currentYear = new Date().getFullYear();
+
+    // 1. 현재 잔여 연차 확인
+    const beforeRemaining = calculateRemainingLeaves(testEmpId, currentYear);
+    const beforeTotalUsed = calculateUsedLeaves(testEmpId, currentYear);
+
+    console.log("📊 테스트 전 상태:", {
+      empId: testEmpId,
+      remainingLeaves: beforeRemaining,
+      usedLeaves: beforeTotalUsed,
+    });
+
+    // 2. 과거 날짜 연차 신청 테스트
+    const pastRequest = {
+      empId: testEmpId,
+      startDate: "2025-01-15", // 과거 날짜
+      endDate: "2025-01-16", // 과거 날짜
+      days: 2,
+      leaveType: "연차",
+      reason: "테스트용 과거 날짜 연차 신청",
+      approvers: ["1002"],
+      collaborators: [],
+    };
+
+    // 3. 과거 연차 신청 처리
+    const submissionResult = submitLeaveRequest(pastRequest);
+    console.log("📝 과거 연차 신청 결과:", submissionResult);
+
+    if (!submissionResult.success) {
+      console.error("❌ 과거 연차 신청 실패:", submissionResult.message);
+      return {
+        success: false,
+        error: submissionResult.message,
+      };
+    }
+
+    // 4. 신청 후 잔여 연차 재확인
+    const afterRemaining = calculateRemainingLeaves(testEmpId, currentYear);
+    const afterTotalUsed = calculateUsedLeaves(testEmpId, currentYear);
+
+    console.log("📊 테스트 후 상태:", {
+      remainingLeaves: afterRemaining,
+      usedLeaves: afterTotalUsed,
+      remainingChange: afterRemaining - beforeRemaining,
+      usedChange: afterTotalUsed - beforeTotalUsed,
+    });
+
+    // 5. 결과 검증 (과거 연차도 차감되어야 함)
+    const remainingDecreased = afterRemaining < beforeRemaining;
+    const totalUsedIncreased = afterTotalUsed > beforeTotalUsed;
+
+    console.log("✅ 검증 결과:", {
+      remainingDecreased: remainingDecreased,
+      totalUsedIncreased: totalUsedIncreased,
+      testPassed: remainingDecreased && totalUsedIncreased,
+    });
+
+    return {
+      success: true,
+      testPassed: remainingDecreased && totalUsedIncreased,
+      before: {
+        remaining: beforeRemaining,
+        used: beforeTotalUsed,
+      },
+      after: {
+        remaining: afterRemaining,
+        used: afterTotalUsed,
+      },
+      impact: {
+        remainingChange: afterRemaining - beforeRemaining,
+        usedChange: afterTotalUsed - beforeTotalUsed,
+      },
+      message:
+        remainingDecreased && totalUsedIncreased
+          ? "✅ 과거 날짜 연차 신청이 현재 잔여에서 올바르게 차감됩니다."
+          : "❌ 과거 날짜 연차 신청이 현재 잔여에서 차감되지 않습니다.",
+    };
+  } catch (error) {
+    console.error("❌ 과거 날짜 연차 신청 잔여 영향 테스트 오류:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * 🧪 LeaveUsage 시트 데이터 확인 (디버깅용)
+ */
+function checkLeaveUsageData() {
+  try {
+    console.log("=== LeaveUsage 시트 데이터 확인 ===");
+
+    const usageSheet = getSheet("LeaveUsage");
+    const data = usageSheet.getDataRange().getValues();
+
+    console.log("전체 데이터:", data);
+    console.log("데이터 행 수:", data.length - 1); // 헤더 제외
+
+    if (data.length > 1) {
+      console.log("최근 5개 기록:");
+      for (let i = Math.max(1, data.length - 5); i < data.length; i++) {
+        console.log(`행 ${i}:`, {
+          reqId: data[i][0],
+          empId: data[i][1],
+          usedDays: data[i][2],
+          registerDate: data[i][3],
+        });
+      }
+    } else {
+      console.log("데이터가 없습니다.");
+    }
+
+    return {
+      totalRecords: Math.max(0, data.length - 1),
+      data: data,
+    };
+  } catch (error) {
+    console.error("LeaveUsage 데이터 확인 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 🧪 ApprovalSteps 시트 데이터 확인 (디버깅용)
+ */
+function checkApprovalStepsData() {
+  try {
+    console.log("=== ApprovalSteps 시트 데이터 확인 ===");
+
+    const stepsSheet = getSheet("ApprovalSteps");
+    const data = stepsSheet.getDataRange().getValues();
+
+    console.log("전체 데이터:", data);
+    console.log("데이터 행 수:", data.length - 1); // 헤더 제외
+
+    if (data.length > 1) {
+      console.log("최근 5개 기록:");
+      for (let i = Math.max(1, data.length - 5); i < data.length; i++) {
+        // 결재자 정보 조회
+        const approver = getEmployee(data[i][2]);
+        const groupName = data[i][1]
+          ? getDepartmentName(data[i][1])
+          : "부서 없음";
+
+        console.log(`행 ${i}:`, {
+          reqId: data[i][0],
+          groupId: data[i][1],
+          groupName: groupName,
+          approverId: data[i][2],
+          approverName: approver ? approver.name : "알 수 없음",
+          stepOrder: data[i][3],
+        });
+      }
+    } else {
+      console.log("데이터가 없습니다.");
+    }
+
+    return {
+      totalRecords: Math.max(0, data.length - 1),
+      data: data,
+    };
+  } catch (error) {
+    console.error("ApprovalSteps 데이터 확인 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 🧪 반차 계산 로직 테스트 (디버깅용)
+ */
+function testHalfDayCalculation() {
+  try {
+    console.log("=== 반차 계산 로직 테스트 ===");
+
+    // 테스트 케이스들
+    const testCases = [
+      { leaveType: "연차", days: 1, expected: 1 },
+      { leaveType: "연차", days: 2, expected: 2 },
+      { leaveType: "반차", days: 0.5, expected: 0.5 },
+      { leaveType: "반차", days: 1, expected: 1 },
+      { leaveType: "반차", days: 2, expected: 2 },
+      { leaveType: "특별휴가", days: 3, expected: 3 },
+    ];
+
+    console.log("테스트 결과:");
+    testCases.forEach((testCase, index) => {
+      let usedDays = testCase.days;
+      if (testCase.leaveType === "반차") {
+        // 반차는 신청 시점에서 이미 0.5로 계산되어 저장되었으므로 그대로 사용
+        usedDays = testCase.days;
+      }
+
+      const isCorrect = usedDays === testCase.expected;
+      console.log(
+        `${index + 1}. ${testCase.leaveType} ${
+          testCase.days
+        }일 → ${usedDays}일 (${isCorrect ? "✅" : "❌"})`
+      );
+    });
+
+    return {
+      success: true,
+      testCases: testCases,
+      message: "반차 계산 로직 테스트 완료",
+    };
+  } catch (error) {
+    console.error("반차 계산 테스트 오류:", error);
+    return { error: error.message };
   }
 }

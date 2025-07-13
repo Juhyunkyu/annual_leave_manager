@@ -3221,12 +3221,12 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="startDate">시작일 *</label>
-              <input type="date" id="startDate" required onchange="calculateLeaveDays()">
+              <input type="date" id="startDate" required onchange="handleStartDateChange()">
             </div>
             
             <div class="form-group">
               <label for="endDate">종료일 *</label>
-              <input type="date" id="endDate" required onchange="calculateLeaveDays()">
+              <input type="date" id="endDate" required onchange="handleEndDateChange()">
             </div>
             
             <div class="form-group">
@@ -4735,11 +4735,98 @@
       document.getElementById('startDate').value = today;
       document.getElementById('endDate').value = today;
       
+      // 과거 날짜도 선택 가능하도록 min 속성 제거 (이미 제거되어 있음)
+      // 사용자에게 과거 날짜 신청 가능 안내 추가
+      const startDateLabel = document.querySelector('label[for="startDate"]');
+      if (startDateLabel) {
+        startDateLabel.innerHTML = '시작일 * <span style="color: #666; font-size: 0.8rem;">(과거 날짜도 선택 가능)</span>';
+      }
+      
+      const endDateLabel = document.querySelector('label[for="endDate"]');
+      if (endDateLabel) {
+        endDateLabel.innerHTML = '종료일 * <span style="color: #666; font-size: 0.8rem;">(과거 날짜도 선택 가능)</span>';
+      }
+      
       // 선택된 결재자/협조자 초기화
       selectedApprovers = [];
       selectedCollaborators = [];
       updateSelectedApprovers();
       updateSelectedCollaborators();
+    }
+    
+    /**
+     * 📅 시작일 변경 처리
+     */
+    function handleStartDateChange() {
+      const startDate = document.getElementById('startDate').value;
+      const endDateInput = document.getElementById('endDate');
+      
+      if (startDate) {
+        // 시작일을 선택하면 종료일도 같은 날짜로 설정
+        endDateInput.value = startDate;
+        
+        // 연차 종류 옵션 업데이트
+        updateLeaveTypeOptions();
+        
+        // 일수 계산
+        calculateLeaveDays();
+      }
+    }
+    
+    /**
+     * 📅 종료일 변경 처리
+     */
+    function handleEndDateChange() {
+      // 연차 종류 옵션 업데이트
+      updateLeaveTypeOptions();
+      
+      // 일수 계산
+      calculateLeaveDays();
+    }
+    
+    /**
+     * 📅 연차 종류 옵션 업데이트
+     */
+    function updateLeaveTypeOptions() {
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const leaveTypeSelect = document.getElementById('leaveType');
+      
+      if (startDate && endDate) {
+        const startDateObj = new Date(startDate);
+        const endDateObj = new Date(endDate);
+        const daysDiff = Math.ceil((endDateObj - startDateObj) / (1000 * 60 * 60 * 24)) + 1;
+        
+        // 현재 선택된 값 저장
+        const currentValue = leaveTypeSelect.value;
+        
+        // 옵션 초기화
+        leaveTypeSelect.innerHTML = '<option value="">선택하세요</option>';
+        
+        // 기본 옵션들 추가
+        const options = [
+          { value: '연차', text: '연차' },
+          { value: '특별휴가', text: '특별휴가' }
+        ];
+        
+        // 2일 이상인 경우 반차 옵션 제외
+        if (daysDiff === 1) {
+          options.splice(1, 0, { value: '반차', text: '반차' });
+        }
+        
+        // 옵션 추가
+        options.forEach(option => {
+          const optionElement = document.createElement('option');
+          optionElement.value = option.value;
+          optionElement.textContent = option.text;
+          leaveTypeSelect.appendChild(optionElement);
+        });
+        
+        // 이전에 선택된 값이 여전히 유효하면 복원
+        if (currentValue && options.some(opt => opt.value === currentValue)) {
+          leaveTypeSelect.value = currentValue;
+        }
+      }
     }
     
     /**
@@ -4780,6 +4867,18 @@
         return;
       }
       
+      // 과거 날짜 신청 확인 (선택사항)
+      const startDateObj = new Date(startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (startDateObj < today) {
+        const confirmed = confirm('과거 날짜로 연차를 신청하시겠습니까?\n\n이는 급한 경우나 사후 신청을 위한 기능입니다.');
+        if (!confirmed) {
+          return;
+        }
+      }
+      
       // 연차 일수 계산
       const days = calculateLeaveDaysForSubmit(startDate, endDate, leaveType);
       
@@ -4804,6 +4903,16 @@
         if (result && result.success) {
           showNotification('연차 신청이 완료되었습니다!', 'success');
           document.getElementById('leaveRequestForm').reset();
+          
+          // 폼 초기화 후 연차 종류 옵션 복원
+          const leaveTypeSelect = document.getElementById('leaveType');
+          leaveTypeSelect.innerHTML = `
+            <option value="">선택하세요</option>
+            <option value="연차">연차</option>
+            <option value="반차">반차</option>
+            <option value="특별휴가">특별휴가</option>
+          `;
+          
           selectedApprovers = [];
           selectedCollaborators = [];
           updateSelectedApprovers();
