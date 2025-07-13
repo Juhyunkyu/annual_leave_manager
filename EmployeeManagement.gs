@@ -1014,7 +1014,10 @@ function getPendingApprovals(empId) {
         }
 
         // 아직 처리하지 않았고, 내 차례인지 확인
-        if (!alreadyProcessed && isMyTurnToApprove(reqId, stepOrder)) {
+        if (
+          !alreadyProcessed &&
+          isMyTurnToApprove(reqId, parseInt(stepOrder))
+        ) {
           const requestInfo = getRequestInfo(reqId);
           if (requestInfo && requestInfo.status === "대기") {
             const applicant = getEmployee(requestInfo.empId);
@@ -1136,7 +1139,7 @@ function isMyTurnToApprove(reqId, myStepOrder) {
     const logsData = logsSheet.getDataRange().getValues();
 
     // 내 이전 단계가 모두 완료되었는지 확인
-    for (let step = 1; step < myStepOrder; step++) {
+    for (let step = 1; step < parseInt(myStepOrder); step++) {
       let stepCompleted = false;
 
       for (let i = 1; i < logsData.length; i++) {
@@ -1175,7 +1178,10 @@ function getApproverByStep(reqId, stepOrder) {
     const data = sheet.getDataRange().getValues();
 
     for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === reqId && data[i][3] === stepOrder) {
+      if (
+        data[i][0] === reqId &&
+        parseInt(data[i][3]) === parseInt(stepOrder)
+      ) {
         return data[i][2]; // ApproverID
       }
     }

@@ -445,6 +445,30 @@ function processApproval(reqId, approverId, result, comment = "") {
 }
 
 /**
+ * 🔍 특정 단계의 결재자 ID 조회
+ */
+function getApproverByStep(reqId, stepOrder) {
+  try {
+    const sheet = getSheet("ApprovalSteps");
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (
+        data[i][0] === reqId &&
+        parseInt(data[i][3]) === parseInt(stepOrder)
+      ) {
+        return data[i][2]; // ApproverID
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error("단계별 결재자 조회 오류:", error);
+    return null;
+  }
+}
+
+/**
  * ✅ 다음 결재자 조회
  */
 function getNextApprover(reqId, currentApproverId) {

@@ -989,11 +989,107 @@ function getNotifications() {
  */
 function getNotificationCount(empId) {
   try {
-    // 현재는 0 반환 (추후 구현)
-    return 0;
+    const notifications = getNotificationsForUser(empId);
+    return notifications.length;
   } catch (error) {
     console.error("알림 개수 조회 오류:", error);
     return 0;
+  }
+}
+
+/**
+ * 🔔 사용자별 알림 목록 가져오기
+ */
+function getNotificationsForUser(empId) {
+  try {
+    const notifications = [];
+
+    // 1. 결재 대기 알림
+    const pendingApprovals = getPendingApprovals(empId);
+    pendingApprovals.forEach((request) => {
+      notifications.push({
+        id: `approval_${request.reqId}`,
+        type: "approval",
+        title: "결재 대기",
+        message: `${request.applicantName}님이 연차를 신청했습니다.`,
+        requestId: request.reqId,
+        applicantName: request.applicantName,
+        startDate: request.startDate,
+        endDate: request.endDate,
+        days: request.days,
+        leaveType: request.leaveType,
+        reason: request.reason,
+        timestamp: new Date().toISOString(),
+        priority: "high",
+      });
+    });
+
+    // 2. 협조 대기 알림
+    const pendingCollaborations = getPendingCollaborations(empId);
+    pendingCollaborations.forEach((request) => {
+      notifications.push({
+        id: `collaboration_${request.reqId}`,
+        type: "collaboration",
+        title: "협조 요청",
+        message: `${request.applicantName}님이 협조를 요청했습니다.`,
+        requestId: request.reqId,
+        applicantName: request.applicantName,
+        startDate: request.startDate,
+        endDate: request.endDate,
+        days: request.days,
+        leaveType: request.leaveType,
+        reason: request.reason,
+        timestamp: new Date().toISOString(),
+        priority: "medium",
+      });
+    });
+
+    // 3. 내 신청 상태 변경 알림 (최근 7일)
+    const myRequests = getMyRequests(empId);
+    const recentDate = new Date();
+    recentDate.setDate(recentDate.getDate() - 7);
+
+    myRequests.forEach((request) => {
+      if (new Date(request.submitDate) >= recentDate) {
+        if (request.status === "승인") {
+          notifications.push({
+            id: `approved_${request.reqId}`,
+            type: "status_change",
+            title: "연차 승인",
+            message: `연차 신청이 승인되었습니다.`,
+            requestId: request.reqId,
+            startDate: request.startDate,
+            endDate: request.endDate,
+            days: request.days,
+            leaveType: request.leaveType,
+            timestamp: new Date().toISOString(),
+            priority: "medium",
+          });
+        } else if (request.status === "반려") {
+          notifications.push({
+            id: `rejected_${request.reqId}`,
+            type: "status_change",
+            title: "연차 반려",
+            message: `연차 신청이 반려되었습니다.`,
+            requestId: request.reqId,
+            startDate: request.startDate,
+            endDate: request.endDate,
+            days: request.days,
+            leaveType: request.leaveType,
+            timestamp: new Date().toISOString(),
+            priority: "high",
+          });
+        }
+      }
+    });
+
+    // 최신순으로 정렬
+    notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    return notifications;
+  } catch (error) {
+    console.error("사용자 알림 조회 오류:", error);
+    return [];
   }
 }
 

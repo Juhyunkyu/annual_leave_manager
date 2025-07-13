@@ -1127,12 +1127,93 @@
       color: #721c24;
     }
 
-    .status-pending {
+        .status-pending {
       background: #fff3cd;
       color: #856404;
-      }
-      
-      .btn-large {
+    }
+    
+    /* 알림 모달 스타일 */
+    .notification-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .notification-item {
+      background: #fff;
+      border: 1px solid #e9ecef;
+      border-radius: 12px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .notification-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      border-color: #667eea;
+    }
+    
+    .notification-item.high {
+      border-left: 4px solid #dc3545;
+    }
+    
+    .notification-item.medium {
+      border-left: 4px solid #ffc107;
+    }
+    
+    .notification-item.low {
+      border-left: 4px solid #28a745;
+    }
+    
+    .notification-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+    
+    .notification-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #333;
+    }
+    
+    .notification-icon {
+      font-size: 1.2rem;
+    }
+    
+    .notification-time {
+      font-size: 0.85rem;
+      color: #6c757d;
+      white-space: nowrap;
+    }
+    
+    .notification-message {
+      color: #495057;
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+    
+    .notification-details {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: #495057;
+      line-height: 1.6;
+    }
+    
+    .notification-details strong {
+      color: #333;
+      font-weight: 600;
+    }
+    
+    .btn-large {
         width: 100%;
         padding: 1rem;
     }
@@ -4475,8 +4556,174 @@
     /**
      * 🔔 알림 표시
      */
-    function showNotifications() {
-      alert('알림 기능은 개발 중입니다.');
+    async function showNotifications() {
+      try {
+        console.log('🔔 알림 목록 조회 시작');
+        
+        // 현재 사용자 ID 가져오기
+        const currentUserId = document.getElementById('userEmpId')?.textContent;
+        if (!currentUserId) {
+          showNotification('사용자 정보를 찾을 수 없습니다.', 'error');
+          return;
+        }
+        
+        // 서버에서 알림 목록 가져오기
+        const notifications = await callServerFunction('getNotificationsForUser', currentUserId);
+        
+        if (!notifications || notifications.length === 0) {
+          showNotification('새로운 알림이 없습니다.', 'info');
+          return;
+        }
+        
+        // 알림 모달 생성
+        createNotificationModal(notifications);
+        
+      } catch (error) {
+        console.error('❌ 알림 조회 오류:', error);
+        showNotification('알림을 불러올 수 없습니다.', 'error');
+      }
+    }
+    
+    /**
+     * 📋 알림 모달 생성
+     */
+    function createNotificationModal(notifications) {
+      // 기존 모달 제거
+      const existingModal = document.getElementById('notificationModal');
+      if (existingModal) {
+        existingModal.remove();
+      }
+      
+      const modalHtml = `
+        <div class="modal-overlay" id="notificationModal">
+          <div class="modal-container" style="width: 90%; max-width: 600px; max-height: 80vh;">
+            <div class="modal-header">
+              <h3>🔔 알림 목록 (${notifications.length}개)</h3>
+              <button class="close-button" onclick="closeNotificationModal()">×</button>
+            </div>
+            <div class="modal-body" style="max-height: calc(80vh - 120px); overflow-y: auto;">
+              <div class="notification-list">
+                ${notifications.map(notification => `
+                  <div class="notification-item ${notification.priority}" onclick="handleNotificationClick('${notification.id}', '${notification.type}', '${notification.requestId}')">
+                    <div class="notification-header">
+                      <div class="notification-title">
+                        <span class="notification-icon">
+                          ${getNotificationIcon(notification.type)}
+                        </span>
+                        ${notification.title}
+                      </div>
+                      <div class="notification-time">
+                        ${formatNotificationTime(notification.timestamp)}
+                      </div>
+                    </div>
+                    <div class="notification-message">
+                      ${notification.message}
+                    </div>
+                    ${notification.applicantName ? `
+                      <div class="notification-details">
+                        <strong>신청자:</strong> ${notification.applicantName}<br>
+                        <strong>기간:</strong> ${notification.startDate} ~ ${notification.endDate}<br>
+                        <strong>일수:</strong> ${notification.days}일<br>
+                        <strong>종류:</strong> ${notification.leaveType}<br>
+                        ${notification.reason ? `<strong>사유:</strong> ${notification.reason}` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn-modal btn-modal-secondary" onclick="closeNotificationModal()">닫기</button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+    
+    /**
+     * 🎯 알림 클릭 처리
+     */
+    async function handleNotificationClick(notificationId, type, requestId) {
+      try {
+        console.log('🎯 알림 클릭:', { notificationId, type, requestId });
+        
+        if (type === 'approval' || type === 'collaboration') {
+          // 결재/협조 페이지로 이동하고 해당 신청 상세보기
+          showPage('approvals');
+          
+          // 잠시 후 상세보기 모달 열기
+          setTimeout(() => {
+            showApprovalStatus(requestId);
+          }, 500);
+          
+        } else if (type === 'status_change') {
+          // 내 신청 현황 페이지로 이동
+          showPage('myRequests');
+        }
+        
+        // 알림 모달 닫기
+        closeNotificationModal();
+        
+      } catch (error) {
+        console.error('❌ 알림 클릭 처리 오류:', error);
+        showNotification('알림 처리 중 오류가 발생했습니다.', 'error');
+      }
+    }
+    
+    /**
+     * 🚪 알림 모달 닫기
+     */
+    function closeNotificationModal() {
+      const modal = document.getElementById('notificationModal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+    
+    /**
+     * 🎨 알림 아이콘 가져오기
+     */
+    function getNotificationIcon(type) {
+      switch (type) {
+        case 'approval':
+          return '✅';
+        case 'collaboration':
+          return '🤝';
+        case 'status_change':
+          return '📋';
+        default:
+          return '🔔';
+      }
+    }
+    
+    /**
+     * ⏰ 알림 시간 포맷팅
+     */
+    function formatNotificationTime(timestamp) {
+      try {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+        if (diffMins < 1) {
+          return '방금 전';
+        } else if (diffMins < 60) {
+          return `${diffMins}분 전`;
+        } else if (diffHours < 24) {
+          return `${diffHours}시간 전`;
+        } else if (diffDays < 7) {
+          return `${diffDays}일 전`;
+        } else {
+          return date.toLocaleDateString('ko-KR');
+        }
+      } catch (error) {
+        return '알 수 없음';
+      }
     }
     
     /**
@@ -5448,14 +5695,23 @@
       
       try {
         showLoading(true);
-        const result = await callServerFunction('processApproval', reqId, action, comment || '');
+        
+        // 현재 사용자 ID 가져오기
+        const currentUserId = document.getElementById('userEmpId')?.textContent;
+        if (!currentUserId) {
+          showNotification('사용자 정보를 찾을 수 없습니다.', 'error');
+          return;
+        }
+        
+        // 서버 함수 호출 (사용자 ID 추가)
+        const result = await callServerFunction('processApproval', reqId, currentUserId, action === 'approve' ? '승인' : '반려', comment || '');
         
         if (result.success) {
           showNotification(action === 'approve' ? '승인 처리되었습니다.' : '반려 처리되었습니다.', 'success');
           loadApprovals(); // 목록 새로고침
           updateNotificationBadge(); // 알림 배지 업데이트
         } else {
-          showNotification('처리 중 오류가 발생했습니다: ' + result.error, 'error');
+          showNotification('처리 중 오류가 발생했습니다: ' + (result.message || result.error), 'error');
         }
       } catch (error) {
         console.error('결재 처리 오류:', error);
@@ -5473,14 +5729,23 @@
       
       try {
         showLoading(true);
-        const result = await callServerFunction('processCollaboration', reqId, action, comment || '');
+        
+        // 현재 사용자 ID 가져오기
+        const currentUserId = document.getElementById('userEmpId')?.textContent;
+        if (!currentUserId) {
+          showNotification('사용자 정보를 찾을 수 없습니다.', 'error');
+          return;
+        }
+        
+        // 서버 함수 호출 (사용자 ID 추가)
+        const result = await callServerFunction('processCollaboration', reqId, currentUserId, action === 'approve' ? '협조' : '거부', comment || '');
         
         if (result.success) {
           showNotification(action === 'approve' ? '협조 처리되었습니다.' : '거부 처리되었습니다.', 'success');
           loadApprovals(); // 목록 새로고침
           updateNotificationBadge(); // 알림 배지 업데이트
         } else {
-          showNotification('처리 중 오류가 발생했습니다: ' + result.error, 'error');
+          showNotification('처리 중 오류가 발생했습니다: ' + (result.message || result.error), 'error');
         }
       } catch (error) {
         console.error('협조 처리 오류:', error);
