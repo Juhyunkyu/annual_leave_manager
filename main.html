@@ -360,44 +360,50 @@
     /* 사번 컬럼 */
     .work-schedule-table th:nth-child(1),
     .work-schedule-table td:nth-child(1) {
-      width: 100px !important;
-      min-width: 100px !important;
-      max-width: 100px !important;
-      text-align: center !important;
-      font-weight: 600 !important;
-      padding: 0.5rem 0.3rem !important;
-    }
-    
-    /* 이름 컬럼 */
-    .work-schedule-table th:nth-child(2),
-    .work-schedule-table td:nth-child(2) {
       width: 120px !important;
       min-width: 120px !important;
       max-width: 120px !important;
       text-align: center !important;
       font-weight: 600 !important;
-      padding: 0.5rem 0.3rem !important;
+      padding: 0.5rem 0.5rem !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
+    
+    /* 이름 컬럼 */
+    .work-schedule-table th:nth-child(2),
+    .work-schedule-table td:nth-child(2) {
+      width: 160px !important;
+      min-width: 160px !important;
+      max-width: 160px !important;
+      text-align: center !important;
+      font-weight: 600 !important;
+      padding: 0.5rem 0.5rem !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
     }
     
     /* 발생 컬럼 */
     .work-schedule-table th:nth-child(3),
     .work-schedule-table td:nth-child(3) {
-      width: 80px !important;
-      min-width: 80px !important;
-      max-width: 80px !important;
+      width: 100px !important;
+      min-width: 100px !important;
+      max-width: 100px !important;
       text-align: center !important;
-      padding: 0.5rem 0.3rem !important;
+      padding: 0.5rem 0.5rem !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
     }
     
     /* 날짜 컬럼들 (4번째부터 마지막 4개 전까지) */
     .work-schedule-table th:nth-child(n+4):not(:nth-last-child(-n+4)),
     .work-schedule-table td:nth-child(n+4):not(:nth-last-child(-n+4)) {
-      width: 40px !important;
-      min-width: 40px !important;
-      max-width: 40px !important;
+      width: 30px !important;
+      min-width: 30px !important;
+      max-width: 30px !important;
       text-align: center !important;
-      font-size: 0.8rem !important;
-      padding: 0.4rem 0.2rem !important;
+      font-size: 0.75rem !important;
+      padding: 0.3rem 0.1rem !important;
     }
     
     /* 사용/잔여/비고 컬럼들 (마지막 4개) */
@@ -417,7 +423,8 @@
       padding: 0.4rem 0.3rem;
       text-align: center;
       vertical-align: middle;
-      overflow: visible; /* 텍스트가 잘리지 않도록 */
+      overflow: hidden; /* 텍스트가 셀 경계를 넘지 않도록 */
+      text-overflow: ellipsis; /* 넘치는 텍스트는 ...으로 표시 */
       white-space: nowrap;
       font-size: 0.85rem;
     }
@@ -550,7 +557,8 @@
       text-align: center;
       padding: 0.5rem 0.3rem;
       white-space: nowrap;
-      overflow: visible;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
     /* 주말 색상 */
@@ -5844,9 +5852,27 @@
         return;
       }
       
+      // 컬럼 개수 계산
+      const totalColumns = scheduleData.columnHeaders.length;
+      const dateColumnCount = totalColumns - 3 - 4; // 3: 사번/이름/발생, 4: 사용/잔여/비고
+
+      // colgroup 동적 생성
+      let colgroupHTML = '<colgroup>';
+      colgroupHTML += '<col style="width:80px">'; // 사번
+      colgroupHTML += '<col style="width:80px">'; // 이름
+      colgroupHTML += '<col style="width:50px">'; // 발생
+      for (let i = 0; i < dateColumnCount; i++) {
+        colgroupHTML += '<col style="width:35px">'; // 날짜
+      }
+      for (let i = 0; i < 4; i++) {
+        colgroupHTML += '<col style="width:50px">'; // 사용/잔여/비고/비고
+      }
+      colgroupHTML += '</colgroup>';
+
       // 테이블 HTML 생성 (구글시트 구조에 맞는 구조)
       let tableHTML = `
         <table class="work-schedule-table">
+          ${colgroupHTML}
           <thead>
             <tr class="schedule-title">
               <td colspan="${scheduleData.columnHeaders.length}">${scheduleData.title || '근무표'}</td>
