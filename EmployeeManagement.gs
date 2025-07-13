@@ -137,11 +137,17 @@ function getMyLeaveInfoFast(empId) {
     const usedLeaves = calculateUsedLeaves(empId, currentYear);
     const remainingLeaves = Math.max(0, basicLeaves - usedLeaves);
 
+    // 대기 중인 신청 개수 계산
+    const pendingRequests = getPendingRequestsCount(empId);
+    const pendingApprovals = getPendingApprovalsCount(empId);
+
     return {
       totalLeaves: basicLeaves,
       usedLeaves: usedLeaves,
       remainingLeaves: remainingLeaves,
       thisYearUsed: usedLeaves,
+      pendingRequests: pendingRequests,
+      pendingApprovals: pendingApprovals,
       year: currentYear,
       deptName: deptName,
       empName: employee.name,
@@ -172,6 +178,140 @@ function clearCache() {
   employeeCache = null;
   employeeCacheTime = null;
   console.log("캐시가 초기화되었습니다.");
+}
+
+/**
+ * ⏳ 대기 중인 신청 개수 (EmployeeManagement.gs에서 사용)
+ */
+function getPendingRequestsCount(empId) {
+  try {
+    const sheet = getSheet("LeaveRequests");
+    const data = sheet.getDataRange().getValues();
+
+    let count = 0;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] == empId && data[i][7] === "대기") {
+        count++;
+      }
+    }
+
+    return count;
+  } catch (error) {
+    console.error("대기 중인 신청 개수 조회 오류:", error);
+    return 0;
+  }
+}
+
+/**
+ * ✅ 내가 처리해야 할 결재 개수 (EmployeeManagement.gs에서 사용)
+ */
+function getPendingApprovalsCount(empId) {
+  try {
+    const sheet = getSheet("ApprovalSteps");
+    const data = sheet.getDataRange().getValues();
+
+    let count = 0;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][2] == empId) {
+        // ApproverID 비교
+        // 해당 신청이 아직 대기 중인지 확인
+        const reqId = data[i][0];
+        if (isRequestPending(reqId)) {
+          count++;
+        }
+      }
+    }
+
+    return count;
+  } catch (error) {
+    console.error("대기 중인 결재 개수 조회 오류:", error);
+    return 0;
+  }
+}
+
+/**
+ * ❓ 신청이 아직 대기 중인지 확인 (EmployeeManagement.gs에서 사용)
+ */
+function isRequestPending(reqId) {
+  try {
+    const requestInfo = getRequestInfo(reqId);
+    return requestInfo && requestInfo.status === "대기";
+  } catch (error) {
+    console.error("신청 상태 확인 오류:", error);
+    return false;
+  }
+}
+
+/**
+ * 📋 신청 정보 조회 (EmployeeManagement.gs에서 사용)
+ */
+function getRequestInfo(reqId) {
+  try {
+    const sheet = getSheet("LeaveRequests");
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === reqId) {
+        return {
+          reqId: data[i][0],
+          empId: data[i][1],
+          startDate: data[i][2],
+          endDate: data[i][3],
+          days: data[i][4],
+          leaveType: data[i][5],
+          reason: data[i][6],
+          status: data[i][7],
+          submitDate: data[i][8],
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error("신청 정보 조회 오류:", error);
+    return null;
+  }
+}
+
+/**
+ * 📊 신청 상세 정보 조회 (상세보기용)
+ */
+function getRequestDetailsForModal(reqId) {
+  try {
+    console.log("📊 신청 상세 정보 조회 시작:", reqId);
+
+    // 기본 신청 정보
+    const requestInfo = getRequestInfo(reqId);
+    if (!requestInfo) {
+      return { success: false, error: "신청 정보를 찾을 수 없습니다." };
+    }
+
+    // 신청자 정보
+    const applicant = getEmployee(requestInfo.empId);
+    if (!applicant) {
+      return { success: false, error: "신청자 정보를 찾을 수 없습니다." };
+    }
+
+    // 결재 현황
+    const approvalStatus = getApprovalStatus(reqId);
+
+    // 협조 현황
+    const collaborationStatus = getCollaborationStatus(reqId);
+
+    const result = {
+      success: true,
+      request: requestInfo,
+      applicant: applicant,
+      approvalStatus: approvalStatus,
+      collaborationStatus: collaborationStatus,
+    };
+
+    console.log("📊 신청 상세 정보 조회 완료:", result);
+    return result;
+  } catch (error) {
+    console.error("신청 상세 정보 조회 오류:", error);
+    return { success: false, error: "상세 정보 조회 중 오류가 발생했습니다." };
+  }
 }
 
 // =====================================
@@ -740,13 +880,24 @@ function getApprovalStatus(reqId) {
           }
         }
 
+        // Date 객체를 문자열로 변환
+        const formatDateForClient = (dateValue) => {
+          if (!dateValue) return "";
+          if (dateValue instanceof Date) {
+            return dateValue.toISOString().split("T")[0];
+          }
+          return dateValue.toString();
+        };
+
         approvalStatus.push({
           stepOrder: stepOrder,
           approverId: approverId,
           approverName: approver ? approver.name : "알 수 없음",
           approverPosition: approver ? approver.position : "",
           status: approvalLog ? approvalLog.result : "대기",
-          processedDate: approvalLog ? approvalLog.dateTime : null,
+          processedDate: approvalLog
+            ? formatDateForClient(approvalLog.dateTime)
+            : null,
           comment: approvalLog ? approvalLog.comment : "",
         });
       }
@@ -797,13 +948,24 @@ function getCollaborationStatus(reqId) {
           }
         }
 
+        // Date 객체를 문자열로 변환
+        const formatDateForClient = (dateValue) => {
+          if (!dateValue) return "";
+          if (dateValue instanceof Date) {
+            return dateValue.toISOString().split("T")[0];
+          }
+          return dateValue.toString();
+        };
+
         collaborationStatus.push({
           stepOrder: stepOrder,
           collaboratorId: collaboratorId,
           collaboratorName: collaborator ? collaborator.name : "알 수 없음",
           collaboratorPosition: collaborator ? collaborator.position : "",
           status: collaborationLog ? collaborationLog.result : "대기",
-          processedDate: collaborationLog ? collaborationLog.dateTime : null,
+          processedDate: collaborationLog
+            ? formatDateForClient(collaborationLog.dateTime)
+            : null,
           comment: collaborationLog ? collaborationLog.comment : "",
         });
       }
@@ -857,17 +1019,26 @@ function getPendingApprovals(empId) {
           if (requestInfo && requestInfo.status === "대기") {
             const applicant = getEmployee(requestInfo.empId);
 
+            // Date 객체를 문자열로 변환
+            const formatDateForClient = (dateValue) => {
+              if (!dateValue) return "";
+              if (dateValue instanceof Date) {
+                return dateValue.toISOString().split("T")[0];
+              }
+              return dateValue.toString();
+            };
+
             pendingApprovals.push({
               reqId: reqId,
               stepOrder: stepOrder,
               empId: requestInfo.empId,
               applicantName: applicant ? applicant.name : "알 수 없음",
-              startDate: requestInfo.startDate,
-              endDate: requestInfo.endDate,
+              startDate: formatDateForClient(requestInfo.startDate),
+              endDate: formatDateForClient(requestInfo.endDate),
               days: requestInfo.days,
               leaveType: requestInfo.leaveType,
               reason: requestInfo.reason,
-              submitDate: requestInfo.submitDate,
+              submitDate: formatDateForClient(requestInfo.submitDate),
             });
           }
         }
@@ -919,16 +1090,25 @@ function getPendingCollaborations(empId) {
           if (requestInfo && requestInfo.status === "대기") {
             const applicant = getEmployee(requestInfo.empId);
 
+            // Date 객체를 문자열로 변환
+            const formatDateForClient = (dateValue) => {
+              if (!dateValue) return "";
+              if (dateValue instanceof Date) {
+                return dateValue.toISOString().split("T")[0];
+              }
+              return dateValue.toString();
+            };
+
             pendingCollaborations.push({
               reqId: reqId,
               empId: requestInfo.empId,
               applicantName: applicant ? applicant.name : "알 수 없음",
-              startDate: requestInfo.startDate,
-              endDate: requestInfo.endDate,
+              startDate: formatDateForClient(requestInfo.startDate),
+              endDate: formatDateForClient(requestInfo.endDate),
               days: requestInfo.days,
               leaveType: requestInfo.leaveType,
               reason: requestInfo.reason,
-              submitDate: requestInfo.submitDate,
+              submitDate: formatDateForClient(requestInfo.submitDate),
             });
           }
         }
@@ -1498,4 +1678,74 @@ function runDebugTest6() {
           }
         : null,
   };
+}
+
+/**
+ * 📊 결재 현황 상세보기용 데이터 조회
+ */
+function getRequestDetailsForModal(reqId) {
+  try {
+    console.log("📊 결재 현황 상세보기 데이터 조회 시작:", reqId);
+
+    // 1. 신청 정보 조회
+    const requestInfo = getRequestInfo(reqId);
+    if (!requestInfo) {
+      console.log("❌ 신청 정보를 찾을 수 없음:", reqId);
+      return {
+        success: false,
+        error: "신청 정보를 찾을 수 없습니다.",
+      };
+    }
+
+    // 2. 신청자 정보 조회
+    const applicant = getUserByEmpId(requestInfo.empId);
+    if (!applicant) {
+      console.log("❌ 신청자 정보를 찾을 수 없음:", requestInfo.empId);
+      return {
+        success: false,
+        error: "신청자 정보를 찾을 수 없습니다.",
+      };
+    }
+
+    // 3. 결재 현황 조회
+    const approvalStatus = getApprovalStatus(reqId);
+
+    // 4. 협조 현황 조회
+    const collaborationStatus = getCollaborationStatus(reqId);
+
+    // Date 객체를 문자열로 변환 (직렬화 문제 해결)
+    const formatDateForClient = (dateValue) => {
+      if (!dateValue) return "";
+      if (dateValue instanceof Date) {
+        return dateValue.toISOString().split("T")[0];
+      }
+      return dateValue.toString();
+    };
+
+    const result = {
+      success: true,
+      requestInfo: {
+        reqId: requestInfo.reqId,
+        applicantName: applicant.name,
+        leaveType: requestInfo.leaveType,
+        startDate: formatDateForClient(requestInfo.startDate),
+        endDate: formatDateForClient(requestInfo.endDate),
+        days: requestInfo.days,
+        reason: requestInfo.reason,
+        status: requestInfo.status,
+        submitDate: formatDateForClient(requestInfo.submitDate),
+      },
+      approvalStatus: approvalStatus || [],
+      collaborationStatus: collaborationStatus || [],
+    };
+
+    console.log("📊 결재 현황 상세보기 데이터 조회 완료:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ 결재 현황 상세보기 데이터 조회 오류:", error);
+    return {
+      success: false,
+      error: "데이터 조회 중 오류가 발생했습니다: " + error.message,
+    };
+  }
 }

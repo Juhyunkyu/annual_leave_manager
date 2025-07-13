@@ -796,6 +796,11 @@
       transition: all 0.3s ease;
     }
     
+    /* 월 입력창 너비 조정 */
+    #scheduleMonth {
+      width: 50% !important;
+    }
+    
     .form-group input:focus,
     .form-group select:focus,
     .form-group textarea:focus {
@@ -998,11 +1003,138 @@
         align-self: center;
         margin-top: 0;
       }
+    }
+
+    /* 📊 모달 스타일 */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+      background-color: white;
+      margin: 5% auto;
+      padding: 0;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px 12px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .close {
+      color: white;
+      font-size: 2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.3s ease;
+    }
+
+    .close:hover {
+      opacity: 0.7;
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    .modal-footer {
+      padding: 1.5rem;
+      border-top: 1px solid #eee;
+      text-align: right;
+    }
+
+    .info-section {
+      margin-bottom: 2rem;
+    }
+
+    .info-section h3 {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 0.5rem;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .info-item label {
+      font-weight: 600;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .info-item span {
+      color: #333;
+      font-size: 1rem;
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-approved {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-rejected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+      }
       
       .btn-large {
         width: 100%;
         padding: 1rem;
-      }
     }
     
     @media (max-width: 480px) {
@@ -3175,7 +3307,7 @@
         <div class="form-grid" style="grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
           <div class="form-group">
             <label for="scheduleMonth">조회 월</label>
-            <input type="month" id="scheduleMonth" onchange="handleMonthChange()">
+            <input type="month" id="scheduleMonth" onchange="handleMonthChange()" min="2020-01" max="2030-12">
           </div>
           
           <div class="form-group">
@@ -5106,8 +5238,141 @@
     /**
      * 📊 결재 현황 상세보기
      */
-    function showApprovalStatus(reqId) {
-      alert('결재 현황 상세보기 기능은 개발 중입니다. 신청ID: ' + reqId);
+    async function showApprovalStatus(reqId) {
+      try {
+        console.log('📊 결재 현황 상세보기 시작:', reqId);
+        
+        // 모달 표시
+        const modal = document.getElementById('approvalStatusModal');
+        modal.style.display = 'block';
+        
+        // 로딩 상태 표시
+        document.getElementById('modalApplicantName').textContent = '로딩 중...';
+        document.getElementById('modalLeaveType').textContent = '로딩 중...';
+        document.getElementById('modalPeriod').textContent = '로딩 중...';
+        document.getElementById('modalDays').textContent = '로딩 중...';
+        document.getElementById('modalReason').textContent = '로딩 중...';
+        document.getElementById('modalStatus').textContent = '로딩 중...';
+        
+        // 서버에서 상세 정보 가져오기
+        const result = await callServerFunction('getRequestDetailsForModal', reqId);
+        
+        // null 체크 추가
+        if (!result) {
+          console.error('❌ 서버 응답이 null입니다.');
+          showNotification('서버 응답을 받을 수 없습니다.', 'error');
+          closeApprovalStatusModal();
+          return;
+        }
+        
+        if (result.success) {
+          // 신청 정보 업데이트
+          document.getElementById('modalApplicantName').textContent = result.requestInfo.applicantName;
+          document.getElementById('modalLeaveType').textContent = result.requestInfo.leaveType;
+          document.getElementById('modalPeriod').textContent = `${formatDate(result.requestInfo.startDate)} ~ ${formatDate(result.requestInfo.endDate)}`;
+          document.getElementById('modalDays').textContent = `${result.requestInfo.days}일`;
+          document.getElementById('modalReason').textContent = result.requestInfo.reason || '-';
+          document.getElementById('modalStatus').textContent = result.requestInfo.status;
+          
+          // 결재 현황 테이블 업데이트
+          updateApprovalTable(result.approvalStatus);
+          
+          // 협조 현황 테이블 업데이트
+          updateCollaborationTable(result.collaborationStatus);
+          
+          console.log('✅ 결재 현황 상세보기 완료');
+        } else {
+          console.error('❌ 상세 정보 조회 실패:', result.error);
+          showNotification('상세 정보를 불러올 수 없습니다: ' + result.error, 'error');
+          closeApprovalStatusModal();
+        }
+      } catch (error) {
+        console.error('❌ 결재 현황 상세보기 오류:', error);
+        showNotification('상세보기 중 오류가 발생했습니다.', 'error');
+        closeApprovalStatusModal();
+      }
+    }
+
+    /**
+     * ✅ 결재 현황 테이블 업데이트
+     */
+    function updateApprovalTable(approvalStatus) {
+      const tableBody = document.getElementById('modalApprovalTable');
+      
+      if (!approvalStatus || approvalStatus.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666;">결재자가 지정되지 않았습니다.</td></tr>';
+        return;
+      }
+      
+      tableBody.innerHTML = approvalStatus.map(approval => `
+        <tr>
+          <td>${approval.stepOrder}</td>
+          <td>${approval.approverName}</td>
+          <td>${approval.approverPosition || '-'}</td>
+          <td><span class="status-badge status-${getStatusClass(approval.status)}">${approval.status}</span></td>
+          <td>${approval.processedDate ? formatDateTime(approval.processedDate) : '-'}</td>
+          <td>${approval.comment || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    /**
+     * 🤝 협조 현황 테이블 업데이트
+     */
+    function updateCollaborationTable(collaborationStatus) {
+      const tableBody = document.getElementById('modalCollaborationTable');
+      
+      if (!collaborationStatus || collaborationStatus.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #666;">협조자가 지정되지 않았습니다.</td></tr>';
+        return;
+      }
+      
+      tableBody.innerHTML = collaborationStatus.map(collaboration => `
+        <tr>
+          <td>${collaboration.stepOrder}</td>
+          <td>${collaboration.collaboratorName}</td>
+          <td>${collaboration.collaboratorPosition || '-'}</td>
+          <td><span class="status-badge status-${getStatusClass(collaboration.status)}">${collaboration.status}</span></td>
+          <td>${collaboration.processedDate ? formatDateTime(collaboration.processedDate) : '-'}</td>
+          <td>${collaboration.comment || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    /**
+     * 🚪 모달 닫기
+     */
+    function closeApprovalStatusModal() {
+      const modal = document.getElementById('approvalStatusModal');
+      modal.style.display = 'none';
+    }
+
+    // 모달 외부 클릭 시 닫기
+    window.onclick = function(event) {
+      const modal = document.getElementById('approvalStatusModal');
+      if (event.target === modal) {
+        closeApprovalStatusModal();
+      }
+    }
+
+    /**
+     * 📅 날짜 시간 포맷팅
+     */
+    function formatDateTime(dateTime) {
+      if (!dateTime) return '-';
+      
+      try {
+        const date = new Date(dateTime);
+        return date.toLocaleString('ko-KR', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (error) {
+        return dateTime.toString();
+      }
     }
     
     /**
@@ -5560,10 +5825,32 @@
           console.error('❌ 사용자 부서 정보 로드 실패:', error);
         });
         
-        // 현재 월로 기본 설정
+        // 현재 월로 기본 설정 (동적)
         const now = new Date();
-        const currentMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-        document.getElementById('scheduleMonth').value = currentMonth;
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const formattedMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+        
+        // 월 선택 범위 동적 설정 (현재 년도 기준 ±5년)
+        const minYear = currentYear - 5;
+        const maxYear = currentYear + 5;
+        const minDate = `${minYear}-01`;
+        const maxDate = `${maxYear}-12`;
+        
+        const monthInput = document.getElementById('scheduleMonth');
+        monthInput.min = minDate;
+        monthInput.max = maxDate;
+        monthInput.value = formattedMonth;
+        
+        console.log('📅 현재 날짜 설정:', {
+          year: currentYear,
+          month: currentMonth,
+          formatted: formattedMonth,
+          range: `${minDate} ~ ${maxDate}`
+        });
+        
+        // 년도 자동 갱신 확인
+        checkYearUpdate();
         
         // 근무표 데이터 로드 및 버튼 상태 확인
         await loadWorkSchedule();
@@ -5746,6 +6033,28 @@
         createButton.title = '부서 정보와 월을 선택해주세요.';
         return;
       }
+      
+      // 선택된 년도 확인 및 범위 검증
+      const [selectedYear, selectedMonth] = scheduleMonth.split('-');
+      const currentYear = new Date().getFullYear();
+      const minYear = currentYear - 5;
+      const maxYear = currentYear + 5;
+      
+      if (selectedYear < minYear || selectedYear > maxYear) {
+        showNotification(`조회 가능한 년도는 ${minYear}년부터 ${maxYear}년까지입니다.`, 'warning');
+        // 현재 년도로 자동 설정
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const formattedMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+        document.getElementById('scheduleMonth').value = formattedMonth;
+        return;
+      }
+      
+      console.log('📅 선택된 날짜:', {
+        year: selectedYear,
+        month: selectedMonth,
+        fullDate: scheduleMonth
+      });
       
       // 근무표 로드 및 버튼 상태 업데이트
       await loadWorkSchedule();
@@ -5950,6 +6259,37 @@
       `;
       
       container.innerHTML = tableHTML + downloadButtonHTML;
+    }
+
+    /**
+     * 📅 년도 자동 갱신 확인
+     */
+    function checkYearUpdate() {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const monthInput = document.getElementById('scheduleMonth');
+      
+      if (monthInput) {
+        const currentValue = monthInput.value;
+        if (currentValue) {
+          const [selectedYear] = currentValue.split('-');
+          if (selectedYear < currentYear - 5 || selectedYear > currentYear + 5) {
+            // 범위를 벗어난 경우 현재 년도로 자동 설정
+            const currentMonth = now.getMonth() + 1;
+            const formattedMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+            monthInput.value = formattedMonth;
+            
+            console.log('📅 년도 자동 갱신:', {
+              oldYear: selectedYear,
+              newYear: currentYear,
+              newValue: formattedMonth
+            });
+            
+            // 근무표 다시 로드
+            loadWorkSchedule();
+          }
+        }
+      }
     }
 
     /**
@@ -8364,5 +8704,100 @@ ${JSON.stringify(result.sampleDataRows, null, 2)}
     window.testLeaveRequestsSheet = testLeaveRequestsSheet;
     window.runStepByStepDiagnosis = runStepByStepDiagnosis;
   </script>
+
+  <!-- 📊 결재 현황 상세보기 모달 -->
+  <div id="approvalStatusModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2>📊 결재 현황 상세보기</h2>
+        <span class="close" onclick="closeApprovalStatusModal()">&times;</span>
+      </div>
+      
+      <div class="modal-body">
+        <!-- 신청 정보 -->
+        <div class="info-section">
+          <h3>📝 신청 정보</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>신청자:</label>
+              <span id="modalApplicantName">-</span>
+            </div>
+            <div class="info-item">
+              <label>연차 종류:</label>
+              <span id="modalLeaveType">-</span>
+            </div>
+            <div class="info-item">
+              <label>기간:</label>
+              <span id="modalPeriod">-</span>
+            </div>
+            <div class="info-item">
+              <label>일수:</label>
+              <span id="modalDays">-</span>
+            </div>
+            <div class="info-item">
+              <label>사유:</label>
+              <span id="modalReason">-</span>
+            </div>
+            <div class="info-item">
+              <label>상태:</label>
+              <span id="modalStatus">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 결재 현황 -->
+        <div class="info-section">
+          <h3>✅ 결재 현황</h3>
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>순서</th>
+                  <th>결재자</th>
+                  <th>직급</th>
+                  <th>상태</th>
+                  <th>처리일시</th>
+                  <th>의견</th>
+                </tr>
+              </thead>
+              <tbody id="modalApprovalTable">
+                <tr>
+                  <td colspan="6" class="loading">결재 현황을 불러오는 중입니다</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 협조 현황 -->
+        <div class="info-section">
+          <h3>🤝 협조 현황</h3>
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>순서</th>
+                  <th>협조자</th>
+                  <th>직급</th>
+                  <th>상태</th>
+                  <th>처리일시</th>
+                  <th>의견</th>
+                </tr>
+              </thead>
+              <tbody id="modalCollaborationTable">
+                <tr>
+                  <td colspan="6" class="loading">협조 현황을 불러오는 중입니다</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeApprovalStatusModal()">닫기</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html> 
