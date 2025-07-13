@@ -325,7 +325,28 @@
       background: white;
       border-radius: 10px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: hidden;
+      max-width: 100%;
+    }
+    
+    /* 테이블 스크롤바 스타일 */
+    .work-schedule-container::-webkit-scrollbar {
+      height: 8px;
+    }
+    
+    .work-schedule-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    
+    .work-schedule-container::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+    
+    .work-schedule-container::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
     }
     
     .work-schedule-table {
@@ -333,17 +354,72 @@
       border-collapse: collapse;
       font-size: 0.85rem;
       table-layout: fixed;
+      min-width: 1500px; /* 충분한 최소 너비 설정 */
+    }
+    
+    /* 사번 컬럼 */
+    .work-schedule-table th:nth-child(1),
+    .work-schedule-table td:nth-child(1) {
+      width: 100px !important;
+      min-width: 100px !important;
+      max-width: 100px !important;
+      text-align: center !important;
+      font-weight: 600 !important;
+      padding: 0.5rem 0.3rem !important;
+    }
+    
+    /* 이름 컬럼 */
+    .work-schedule-table th:nth-child(2),
+    .work-schedule-table td:nth-child(2) {
+      width: 120px !important;
+      min-width: 120px !important;
+      max-width: 120px !important;
+      text-align: center !important;
+      font-weight: 600 !important;
+      padding: 0.5rem 0.3rem !important;
+    }
+    
+    /* 발생 컬럼 */
+    .work-schedule-table th:nth-child(3),
+    .work-schedule-table td:nth-child(3) {
+      width: 80px !important;
+      min-width: 80px !important;
+      max-width: 80px !important;
+      text-align: center !important;
+      padding: 0.5rem 0.3rem !important;
+    }
+    
+    /* 날짜 컬럼들 (4번째부터 마지막 4개 전까지) */
+    .work-schedule-table th:nth-child(n+4):not(:nth-last-child(-n+4)),
+    .work-schedule-table td:nth-child(n+4):not(:nth-last-child(-n+4)) {
+      width: 40px !important;
+      min-width: 40px !important;
+      max-width: 40px !important;
+      text-align: center !important;
+      font-size: 0.8rem !important;
+      padding: 0.4rem 0.2rem !important;
+    }
+    
+    /* 사용/잔여/비고 컬럼들 (마지막 4개) */
+    .work-schedule-table th:nth-last-child(-n+4),
+    .work-schedule-table td:nth-last-child(-n+4) {
+      width: 60px !important;
+      min-width: 60px !important;
+      max-width: 60px !important;
+      text-align: center !important;
+      font-size: 0.8rem !important;
+      padding: 0.4rem 0.2rem !important;
     }
     
     .work-schedule-table th,
     .work-schedule-table td {
       border: 1px solid #e0e0e0;
-      padding: 0.4rem;
+      padding: 0.4rem 0.3rem;
       text-align: center;
       vertical-align: middle;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      overflow: visible; /* 텍스트가 잘리지 않도록 */
       white-space: nowrap;
+      font-size: 0.85rem;
     }
     
     .work-schedule-table th {
@@ -471,8 +547,10 @@
     .employee-info {
       background: #f8f9fa;
       font-weight: 500;
-      text-align: left;
-      padding-left: 0.8rem;
+      text-align: center;
+      padding: 0.5rem 0.3rem;
+      white-space: nowrap;
+      overflow: visible;
     }
     
     /* 주말 색상 */
@@ -3038,26 +3116,26 @@
     <div id="workSchedulePage" class="page">
       <div class="page-header dashboard-header">
         <div class="dashboard-title-section">
-          <h1 class="page-title">📅 근무표</h1>
-          <p class="page-subtitle">부서별 월간 근무 현황을 확인하세요.</p>
-        </div>
+        <h1 class="page-title">📅 근무표</h1>
+        <p class="page-subtitle">부서별 월간 근무 현황을 확인하세요.</p>
+      </div>
         <div class="dashboard-dept-section">
           <span class="dept-badge loading-badge" id="workScheduleDeptBadge">
             <span class="loading-dots">로딩중</span>
           </span>
+          </div>
         </div>
-      </div>
-      
+        
       <!-- 월 선택 및 근무표 생성 -->
       <div class="schedule-controls">
         <div class="form-grid" style="grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
           <div class="form-group">
             <label for="scheduleMonth">조회 월</label>
-            <input type="month" id="scheduleMonth" onchange="loadWorkSchedule()">
+            <input type="month" id="scheduleMonth" onchange="handleMonthChange()">
           </div>
           
           <div class="form-group">
-            <button type="button" class="btn btn-primary" onclick="createWorkScheduleSheet()">
+            <button type="button" class="btn btn-secondary" onclick="createWorkScheduleSheet()" disabled>
               📋 근무표 생성
             </button>
           </div>
@@ -4031,14 +4109,14 @@
         if (workScheduleDeptBadge) {
           workScheduleDeptBadge.classList.remove('loading-badge');
           workScheduleDeptBadge.innerHTML = deptName || '부서 미지정';
-        }
+          }
         
         console.log('✅ 부서 배지 업데이트 완료:', deptName);
       } catch (error) {
         console.error('❌ 부서 배지 업데이트 오류:', error);
       }
     }
-
+    
     /**
      * 📝 최근 신청 내역 로드
      */
@@ -5422,6 +5500,13 @@
       try {
         console.log('📅 근무표 페이지 로드 시작...');
         
+        // 초기 버튼 상태 설정 (비활성화)
+        const createButton = document.querySelector('button[onclick="createWorkScheduleSheet()"]');
+        createButton.disabled = true;
+        createButton.innerHTML = '<span>📋</span> 근무표 생성';
+        createButton.className = 'btn btn-secondary';
+        createButton.title = '부서 정보와 월을 선택해주세요.';
+        
         // 사용자 부서 정보 로드 (비동기 처리)
         await loadUserDepartmentInfo().then(() => {
           console.log('✅ 사용자 부서 정보 로드 완료');
@@ -5442,6 +5527,9 @@
       } catch (error) {
         console.error('❌ 근무표 페이지 로드 오류:', error);
         showNotification('근무표 페이지를 불러올 수 없습니다.', 'error');
+        
+        // 오류 발생 시에도 버튼 상태 업데이트
+        await updateWorkScheduleButtonState();
       }
     }
 
@@ -5494,7 +5582,7 @@
         updateDeptBadge(deptName);
         
         window.currentUserDeptId = deptId;
-        
+          
         console.log('✅ 사용자 부서 정보 로드 완료:', {
           deptName: deptName,
           deptId: deptId
@@ -5597,6 +5685,27 @@
     }
 
     /**
+     * 📅 월 선택 이벤트 처리
+     */
+    async function handleMonthChange() {
+      const scheduleMonth = document.getElementById('scheduleMonth').value;
+      const userDeptId = window.currentUserDeptId;
+      
+      if (!userDeptId || !scheduleMonth) {
+        // 부서 정보나 월이 없으면 버튼 비활성화
+        const createButton = document.querySelector('button[onclick="createWorkScheduleSheet()"]');
+        createButton.disabled = true;
+        createButton.innerHTML = '<span>📋</span> 근무표 생성';
+        createButton.className = 'btn btn-secondary';
+        createButton.title = '부서 정보와 월을 선택해주세요.';
+        return;
+      }
+      
+      // 근무표 로드 및 버튼 상태 업데이트
+      await loadWorkSchedule();
+    }
+
+    /**
      * 📊 근무표 데이터 로드 (기존 함수명 유지)
      */
     async function loadWorkSchedule() {
@@ -5606,6 +5715,8 @@
       if (!userDeptId || !scheduleMonth) {
         // 사용자 부서 정보가 없거나 월이 선택되지 않은 경우
         showEmptyScheduleState();
+        // 버튼 비활성화
+        await updateWorkScheduleButtonState();
         return;
       }
       
@@ -5624,12 +5735,14 @@
           showScheduleNotFound(userDeptId, year, month);
         }
         
-        // 버튼 상태 업데이트
+        // 로딩 완료 후 버튼 상태 업데이트
         await updateWorkScheduleButtonState();
         
       } catch (error) {
         console.error('❌ 근무표 로드 오류:', error);
         showScheduleError();
+        // 오류 발생 시에도 버튼 상태 업데이트
+        await updateWorkScheduleButtonState();
       }
     }
 
@@ -5681,6 +5794,12 @@
         const userDeptId = window.currentUserDeptId;
         
         if (!userDeptId || !scheduleMonth) {
+          // 부서 정보나 월이 없으면 버튼 비활성화
+          const createButton = document.querySelector('button[onclick="createWorkScheduleSheet()"]');
+          createButton.disabled = true;
+          createButton.innerHTML = '<span>📋</span> 근무표 생성';
+          createButton.className = 'btn btn-secondary';
+          createButton.title = '부서 정보와 월을 선택해주세요.';
           return;
         }
         
@@ -5696,7 +5815,7 @@
           createButton.className = 'btn btn-secondary';
           createButton.title = '이미 해당 월의 근무표가 생성되어 있습니다.';
         } else {
-          // 근무표가 없는 경우
+          // 근무표가 없는 경우 - 활성화
           createButton.disabled = false;
           createButton.innerHTML = '<span>📋</span> 근무표 생성';
           createButton.className = 'btn btn-primary';
@@ -5705,6 +5824,12 @@
         
       } catch (error) {
         console.error('❌ 근무표 버튼 상태 업데이트 오류:', error);
+        // 오류 발생 시 버튼 비활성화
+        const createButton = document.querySelector('button[onclick="createWorkScheduleSheet()"]');
+        createButton.disabled = true;
+        createButton.innerHTML = '<span>📋</span> 근무표 생성';
+        createButton.className = 'btn btn-secondary';
+        createButton.title = '상태 확인 중 오류가 발생했습니다.';
       }
     }
 
