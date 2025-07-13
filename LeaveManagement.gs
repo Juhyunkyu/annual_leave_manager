@@ -506,26 +506,38 @@ function finalizeApproval(reqId) {
     // 신청 상태를 승인으로 변경
     const requestSheet = getSheet("LeaveRequests");
     const data = requestSheet.getDataRange().getValues();
+    let approvedRequest = null;
 
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] === reqId) {
         requestSheet.getRange(i + 1, 8).setValue("승인");
 
-        // 연차 사용 기록 추가
-        const usageSheet = getSheet("LeaveUsage");
-        const usageRow = [
-          reqId,
-          data[i][1], // EmpID
-          data[i][4], // Days
-          new Date(),
-        ];
-        usageSheet.appendRow(usageRow);
+        // 승인된 신청 정보 저장
+        approvedRequest = {
+          empId: data[i][1],
+          startDate: new Date(data[i][2]),
+          endDate: new Date(data[i][3]),
+          leaveType: data[i][5],
+        };
         break;
       }
     }
 
+    // 연차 사용 기록 추가
+    const usageSheet = getSheet("LeaveUsage");
+    const usageRow = [
+      reqId,
+      approvedRequest.empId,
+      approvedRequest.days,
+      new Date(),
+    ];
+    usageSheet.appendRow(usageRow);
+
     // 신청자에게 최종 승인 알림 발송
     sendFinalApprovalNotification(reqId);
+
+    // 근무표 자동 업데이트
+    updateWorkScheduleForApprovedLeave(approvedRequest);
 
     console.log("최종 승인 처리 완료:", reqId);
   } catch (error) {

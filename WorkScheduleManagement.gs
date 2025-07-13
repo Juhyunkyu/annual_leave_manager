@@ -624,6 +624,224 @@ function getEmployeesByDepartment(deptId) {
 // =====================================
 
 /**
+ * 🔄 승인된 연차에 따른 근무표 자동 업데이트
+ */
+function updateWorkScheduleForApprovedLeave(approvedRequest) {
+  try {
+    console.log("🔄 근무표 자동 업데이트 시작:", approvedRequest);
+
+    // 승인된 연차의 시작일과 종료일
+    const startDate = new Date(approvedRequest.startDate);
+    const endDate = new Date(approvedRequest.endDate);
+    const empId = approvedRequest.empId;
+    const leaveType = approvedRequest.leaveType;
+
+    // 직원 정보 조회
+    const employee = getEmployee(empId);
+    if (!employee) {
+      console.log("⚠️ 직원 정보를 찾을 수 없습니다:", empId);
+      return;
+    }
+
+    // 해당 월의 근무표 시트들 업데이트
+    const monthsToUpdate = [];
+
+    // 시작일과 종료일이 걸쳐있는 모든 월을 찾기
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1;
+      const monthKey = `${year}-${month}`;
+
+      if (!monthsToUpdate.includes(monthKey)) {
+        monthsToUpdate.push(monthKey);
+      }
+
+      // 다음 달로 이동
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+
+    console.log("📅 업데이트할 월들:", monthsToUpdate);
+
+    // 각 월별로 근무표 업데이트
+    for (const monthKey of monthsToUpdate) {
+      const [year, month] = monthKey.split("-").map(Number);
+
+      // 해당 월의 근무표 시트 찾기
+      const sheetName = findWorkScheduleSheet(employee.deptId, year, month);
+      if (sheetName) {
+        updateWorkScheduleSheet(
+          sheetName,
+          empId,
+          startDate,
+          endDate,
+          leaveType
+        );
+        console.log(`✅ ${year}년 ${month}월 근무표 업데이트 완료`);
+      } else {
+        console.log(`⚠️ ${year}년 ${month}월 근무표가 존재하지 않습니다.`);
+      }
+    }
+
+    console.log("🔄 근무표 자동 업데이트 완료");
+  } catch (error) {
+    console.error("❌ 근무표 자동 업데이트 오류:", error);
+  }
+}
+
+/**
+ * 🔍 근무표 시트명 찾기
+ */
+function findWorkScheduleSheet(deptId, year, month) {
+  try {
+    const department = getDepartmentById(deptId);
+    if (!department) return null;
+
+    const monthStr = month.toString().padStart(2, "0");
+    const sheetName = `${department.deptName}_${year}_${monthStr}`;
+
+    const sheet = getSheetIfExists(sheetName);
+    return sheet ? sheetName : null;
+  } catch (error) {
+    console.error("❌ 근무표 시트명 찾기 오류:", error);
+    return null;
+  }
+}
+
+/**
+ * 📝 근무표 시트 업데이트
+ */
+function updateWorkScheduleSheet(
+  sheetName,
+  empId,
+  startDate,
+  endDate,
+  leaveType
+) {
+  try {
+    const sheet =
+      SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+    if (!sheet) return;
+
+    const data = sheet.getDataRange().getValues();
+    const lastDay = new Date(
+      data[0][0].split("년")[0],
+      data[0][0].split("월")[0].split("년")[1],
+      0
+    ).getDate();
+
+    // 해당 직원의 행 찾기
+    let employeeRow = -1;
+    for (let row = 3; row < data.length; row++) {
+      if (data[row][0] === empId) {
+        employeeRow = row;
+        break;
+      }
+    }
+
+    if (employeeRow === -1) {
+      console.log("⚠️ 직원 행을 찾을 수 없습니다:", empId);
+      return;
+    }
+
+    // 연차 표시 텍스트 결정
+    let leaveText = "Y";
+    if (leaveType === "반차") {
+      leaveText = "Y/2";
+    }
+
+    // 해당 월의 날짜들에 연차 표시
+    for (let day = 1; day <= lastDay; day++) {
+      const currentDate = new Date(
+        data[0][0].split("년")[0],
+        data[0][0].split("월")[0].split("년")[1] - 1,
+        day
+      );
+
+      if (currentDate >= startDate && currentDate <= endDate) {
+        const col = 3 + day; // 날짜 열 위치
+        const cell = sheet.getRange(employeeRow + 1, col);
+
+        // 셀에 연차 정보 설정
+        cell.setValue(leaveText);
+
+        // 색상 설정
+        if (leaveType === "연차") {
+          cell
+            .setBackground("#4caf50")
+            .setFontColor("white")
+            .setFontWeight("bold");
+        } else if (leaveType === "반차") {
+          cell
+            .setBackground("#ff9800")
+            .setFontColor("white")
+            .setFontWeight("bold");
+        } else {
+          cell
+            .setBackground("#2196f3")
+            .setFontColor("white")
+            .setFontWeight("bold");
+        }
+      }
+    }
+
+    // 사용 일수 업데이트
+    updateUsedDaysInSheet(sheet, employeeRow, startDate, endDate, lastDay);
+
+    console.log(`✅ ${sheetName} 업데이트 완료`);
+  } catch (error) {
+    console.error("❌ 근무표 시트 업데이트 오류:", error);
+  }
+}
+
+/**
+ * 📊 사용 일수 업데이트
+ */
+function updateUsedDaysInSheet(
+  sheet,
+  employeeRow,
+  startDate,
+  endDate,
+  lastDay
+) {
+  try {
+    const year = startDate.getFullYear();
+    const month = startDate.getMonth() + 1;
+    const currentMonthStart = new Date(year, month - 1, 1);
+    const currentMonthEnd = new Date(year, month, 0);
+
+    // 해당 월에 포함되는 일수 계산
+    const effectiveStart =
+      startDate < currentMonthStart ? currentMonthStart : startDate;
+    const effectiveEnd = endDate > currentMonthEnd ? currentMonthEnd : endDate;
+
+    let usedDays = 0;
+    if (effectiveStart <= effectiveEnd) {
+      usedDays =
+        Math.ceil((effectiveEnd - effectiveStart) / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    // 사용 일수 열 업데이트 (마지막에서 4번째 열)
+    const usedDaysCol = 3 + lastDay + 1;
+    const currentUsedDays =
+      sheet.getRange(employeeRow + 1, usedDaysCol).getValue() || 0;
+    sheet
+      .getRange(employeeRow + 1, usedDaysCol)
+      .setValue(currentUsedDays + usedDays);
+
+    // 잔여 일수 업데이트 (마지막에서 3번째 열)
+    const remainingCol = 3 + lastDay + 3;
+    const currentRemaining =
+      sheet.getRange(employeeRow + 1, remainingCol).getValue() || 0;
+    sheet
+      .getRange(employeeRow + 1, remainingCol)
+      .setValue(currentRemaining - usedDays);
+  } catch (error) {
+    console.error("❌ 사용 일수 업데이트 오류:", error);
+  }
+}
+
+/**
  * 🧪 근무표 생성 테스트
  */
 function testWorkScheduleCreation() {
