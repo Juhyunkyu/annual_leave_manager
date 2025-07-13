@@ -32,8 +32,20 @@ function doGet(e) {
     // 강제 로그아웃 파라미터 확인
     if (e.parameter.logout === "true") {
       console.log("🔐 강제 로그아웃 요청");
+
+      // 모든 세션 완전 삭제
       clearAllSessions();
       clearSession();
+
+      // 캐시도 정리
+      try {
+        const cache = CacheService.getUserCache();
+        cache.removeAll();
+      } catch (cacheError) {
+        console.warn("캐시 정리 중 오류 (무시됨):", cacheError);
+      }
+
+      console.log("✅ 강제 로그아웃 완료 - 로그인 페이지 표시");
       return showLoginPage();
     }
 
@@ -317,17 +329,40 @@ function doAdminLogin(email, password) {
 }
 
 /**
- * 🔓 로그아웃 처리 함수
+ * 🔓 로그아웃 처리 함수 (완전한 세션 정리)
  */
 function doLogout() {
   try {
-    // 세션 삭제
+    console.log("🔓 로그아웃 처리 시작");
+
+    // 1. 현재 세션 정보 확인
+    const session = getValidSession();
+    if (session) {
+      console.log("현재 세션 정보:", {
+        userType: session.userType,
+        empId: session.empId,
+        adminId: session.adminId,
+        name: session.name,
+      });
+    }
+
+    // 2. 모든 세션 삭제
     clearSession();
+    clearAllSessions();
+
+    // 3. 세션 삭제 확인
+    const remainingSession = getValidSession();
+    if (remainingSession) {
+      console.warn("⚠️ 세션 삭제 후에도 세션이 남아있음:", remainingSession);
+    } else {
+      console.log("✅ 세션 완전 삭제 확인");
+    }
 
     return {
       success: true,
       message: "로그아웃이 완료되었습니다.",
       timestamp: new Date().toISOString(),
+      sessionCleared: !remainingSession,
     };
   } catch (error) {
     console.error("❌ 로그아웃 오류:", error);

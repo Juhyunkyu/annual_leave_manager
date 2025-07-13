@@ -4320,6 +4320,11 @@
             document.getElementById('pendingApprovals').textContent = myLeaveInfo.pendingApprovals || '0';
             document.getElementById('thisMonthUsed').textContent = myLeaveInfo.thisYearUsed || '0';
             
+            // 디버깅 정보 콘솔에 출력 (개발용)
+            if (myLeaveInfo.debug) {
+              console.log('📊 대시보드 연차 계산 디버깅:', myLeaveInfo.debug);
+            }
+            
             // 부서 정보 업데이트 (공통 함수 사용)
             updateDeptBadge(myLeaveInfo.deptName);
             
@@ -6022,55 +6027,26 @@
     }
     
     /**
-     * 🚪 로그아웃
+     * 🚪 로그아웃 (간단하고 확실한 방법)
      */
     async function logout() {
       if (confirm('정말 로그아웃하시겠습니까?')) {
         try {
-          // 로딩 표시
-          showLoading(true);
+          // 서버에 로그아웃 요청
+          await callServerFunction('doLogout');
           
-          const result = await callServerFunction('doLogout');
-          
-          if (result && result.success !== false) {
-            // 성공 메시지 표시
-            showNotification('로그아웃되었습니다. 로그인 페이지로 이동합니다.', 'success');
-            
-            // 서버에서 로그인 페이지 HTML을 직접 가져와서 교체
-            try {
-              const loginPageResult = await callServerFunction('getLoginPageAfterLogout');
-              
-              if (loginPageResult && loginPageResult.success && loginPageResult.html) {
-                // 현재 페이지 전체를 로그인 페이지 HTML로 교체
-                document.open();
-                document.write(loginPageResult.html);
-                document.close();
-              } else {
-                throw new Error('로그인 페이지 HTML 가져오기 실패');
-              }
-            } catch (htmlError) {
-              // HTML 교체 실패 시 URL 리다이렉트로 폴백
-              const baseUrl = window.location.href.split('?')[0];
-              window.location.replace(baseUrl + '?logout=true&t=' + new Date().getTime());
-            }
-            
-          } else {
-            throw new Error(result.message || '로그아웃 처리 실패');
-          }
+          // 바로 새로고침
+          window.location.reload();
           
         } catch (error) {
-          showLoading(false);
-          
-          showNotification('로그아웃 중 오류가 발생했습니다. 페이지를 새로고침합니다.', 'error');
-          
-          // 오류가 발생해도 강제로 페이지 새로고침 (세션 삭제 시도)
-          setTimeout(() => {
-            const baseUrl = window.location.href.split('?')[0];
-            window.location.replace(baseUrl + '?logout=true&t=' + new Date().getTime());
-          }, 1500);
+          console.error('로그아웃 오류:', error);
+          // 오류가 있어도 새로고침
+          window.location.reload();
         }
       }
     }
+    
+
     
     /**
      * 📱 외부 클릭 시 드롭다운 닫기
@@ -6105,7 +6081,14 @@
       setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease-in';
         setTimeout(() => {
-          document.body.removeChild(notification);
+          // 안전한 제거: 요소가 여전히 DOM에 존재하는지 확인
+          if (notification && notification.parentNode) {
+            try {
+              document.body.removeChild(notification);
+            } catch (error) {
+              console.warn('알림 요소 제거 중 오류 (무시됨):', error);
+            }
+          }
         }, 300);
       }, 3000);
     }
@@ -6172,7 +6155,7 @@
     }
     
     // 60초마다 알림 확인 (네트워크 요청 빈도 줄임)
-    setInterval(checkNotifications, 60000);
+    window.notificationInterval = setInterval(checkNotifications, 60000);
 
     // =====================================
     // 📅 근무표 관리 함수들

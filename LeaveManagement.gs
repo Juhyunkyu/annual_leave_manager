@@ -68,7 +68,7 @@ function calculateRemainingLeaves(empId, year) {
 }
 
 /**
- * 📊 사용한 연차 계산
+ * 📊 사용한 연차 계산 (수정된 버전)
  */
 function calculateUsedLeaves(empId, year) {
   try {
@@ -83,22 +83,25 @@ function calculateUsedLeaves(empId, year) {
       const status = request[7]; // 상태 컬럼
       const requestEmpId = request[1]; // 직원 ID
 
-      if (status === "승인" && requestEmpId === empId) {
+      if (status === "승인" && requestEmpId.toString() === empId.toString()) {
         const startDate = new Date(request[2]); // 시작일
-        const endDate = new Date(request[3]); // 종료일
         const leaveType = request[5]; // 연차 종류
         const days = parseFloat(request[4]) || 0; // 일수
 
         // 해당 연도의 모든 연차 계산 (과거 포함)
         if (startDate.getFullYear() === year) {
-          if (leaveType === "반차") {
-            totalUsed += days * 0.5;
-          } else {
-            totalUsed += days;
-          }
+          // 반차는 이미 0.5로 저장되어 있으므로 그대로 사용
+          // 연차는 그대로 사용
+          totalUsed += days;
         }
       }
     }
+
+    console.log(`📊 직원 ${empId} ${year}년 사용 연차 계산:`, {
+      empId: empId,
+      year: year,
+      totalUsed: totalUsed,
+    });
 
     return totalUsed;
   } catch (error) {

@@ -131,27 +131,48 @@ function getMyLeaveInfoFast(empId) {
     const deptMap = getDepartmentMap();
     const deptName = deptMap[employee.deptId] || "부서 미지정";
 
-    // 연차 정보 계산
+    // 연차 정보 계산 (모든 승인된 연차 반영)
     const currentYear = new Date().getFullYear();
-    const basicLeaves = parseInt(getSystemSetting("기본연차일수", 15));
-    const usedLeaves = calculateUsedLeaves(empId, currentYear);
-    const remainingLeaves = Math.max(0, basicLeaves - usedLeaves);
+    const currentMonth = new Date().getMonth() + 1;
+
+    // 1. 입사일 기준 발생 연차 계산
+    const earnedLeaves = calculateEarnedLeaves(
+      empId,
+      currentYear,
+      currentMonth
+    );
+
+    // 2. 모든 승인된 연차 계산 (과거 + 현재 + 미래)
+    const allApprovedLeaves = calculateAllApprovedLeaves(empId);
+
+    // 3. 최종 잔여 (발생 - 모든 승인된 연차)
+    const remainingLeaves = Math.max(0, earnedLeaves - allApprovedLeaves);
+
+    // 4. 해당 월 사용 연차 (표시용)
+    const monthlyUsage = getMonthlyUsedLeaves(empId, currentYear, currentMonth);
 
     // 대기 중인 신청 개수 계산
     const pendingRequests = getPendingRequestsCount(empId);
     const pendingApprovals = getPendingApprovalsCount(empId);
 
     return {
-      totalLeaves: basicLeaves,
-      usedLeaves: usedLeaves,
+      totalLeaves: earnedLeaves,
+      usedLeaves: allApprovedLeaves,
       remainingLeaves: remainingLeaves,
-      thisYearUsed: usedLeaves,
+      thisYearUsed: allApprovedLeaves,
       pendingRequests: pendingRequests,
       pendingApprovals: pendingApprovals,
       year: currentYear,
       deptName: deptName,
       empName: employee.name,
       position: employee.position,
+      // 디버깅용 추가 정보
+      debug: {
+        earnedLeaves: earnedLeaves,
+        allApprovedLeaves: allApprovedLeaves,
+        monthlyUsage: monthlyUsage,
+        calculation: `${earnedLeaves} - ${allApprovedLeaves} = ${remainingLeaves}`,
+      },
     };
   } catch (error) {
     console.error("내 연차 정보 조회 오류:", error);
@@ -1267,6 +1288,152 @@ function getMyInfo(empId) {
   } catch (error) {
     console.error("내 정보 조회 오류:", error);
     return null;
+  }
+}
+
+/**
+ * 📊 모든 승인된 연차 계산 (과거 + 현재 + 미래)
+ */
+function calculateAllApprovedLeaves(empId) {
+  try {
+    const requestSheet = getSheet("LeaveRequests");
+    const data = requestSheet.getDataRange().getValues();
+    let totalApproved = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const request = data[i];
+      const status = request[7]; // 상태 컬럼
+      const requestEmpId = request[1]; // 직원 ID
+
+      if (status === "승인" && requestEmpId.toString() === empId.toString()) {
+        const days = parseFloat(request[4]) || 0; // 일수
+        const leaveType = request[5]; // 연차 종류
+        const startDate = new Date(request[2]); // 시작일
+        const endDate = new Date(request[3]); // 종료일
+
+        // 모든 승인된 연차를 합산 (과거, 현재, 미래 모두 포함)
+        if (leaveType === "반차") {
+          // 반차는 이미 0.5로 저장되어 있으므로 그대로 사용
+          totalApproved += days;
+        } else {
+          // 연차는 그대로 사용
+          totalApproved += days;
+        }
+
+        console.log(
+          `📅 승인된 연차: ${startDate.toISOString().split("T")[0]} ~ ${
+            endDate.toISOString().split("T")[0]
+          }, ${leaveType}, ${days}일`
+        );
+      }
+    }
+
+    console.log(`📊 직원 ${empId} 모든 승인된 연차 합계:`, totalApproved);
+    return totalApproved;
+  } catch (error) {
+    console.error("❌ 모든 승인된 연차 계산 오류:", error);
+    return 0;
+  }
+}
+
+/**
+ * 🧪 대시보드 연차 계산 테스트
+ */
+function testDashboardLeaveCalculation(empId) {
+  try {
+    console.log("🧪 대시보드 연차 계산 테스트 시작:", empId);
+
+    // 1. 기존 방식으로 계산
+    const basicLeaves = parseInt(getSystemSetting("기본연차일수", 15));
+    const oldUsedLeaves = calculateUsedLeaves(empId, new Date().getFullYear());
+    const oldRemainingLeaves = Math.max(0, basicLeaves - oldUsedLeaves);
+
+    // 2. 새로운 방식으로 계산 (getMyLeaveInfoFast 사용)
+    const newLeaveInfo = getMyLeaveInfoFast(empId);
+
+    // 3. 새로운 방식으로 계산 (모든 승인된 연차 반영)
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const earnedLeaves = calculateEarnedLeaves(
+      empId,
+      currentYear,
+      currentMonth
+    );
+    const allApprovedLeaves = calculateAllApprovedLeaves(empId);
+    const newRemainingLeaves = Math.max(0, earnedLeaves - allApprovedLeaves);
+
+    const result = {
+      empId: empId,
+      timestamp: new Date().toISOString(),
+      oldCalculation: {
+        basicLeaves: basicLeaves,
+        usedLeaves: oldUsedLeaves,
+        remainingLeaves: oldRemainingLeaves,
+        formula: `${basicLeaves} - ${oldUsedLeaves} = ${oldRemainingLeaves}`,
+      },
+      newCalculation: {
+        totalLeaves: newLeaveInfo.totalLeaves,
+        usedLeaves: newLeaveInfo.usedLeaves,
+        remainingLeaves: newLeaveInfo.remainingLeaves,
+        debug: newLeaveInfo.debug,
+      },
+      newCalculation: {
+        earnedLeaves: earnedLeaves,
+        allApprovedLeaves: allApprovedLeaves,
+        remainingLeaves: newRemainingLeaves,
+        formula: `${earnedLeaves} - ${allApprovedLeaves} = ${newRemainingLeaves}`,
+      },
+      comparison: {
+        oldVsNew:
+          oldRemainingLeaves === newLeaveInfo.remainingLeaves
+            ? "✅ 일치"
+            : "❌ 불일치",
+        newVsImproved:
+          newLeaveInfo.remainingLeaves === newRemainingLeaves
+            ? "✅ 일치"
+            : "❌ 불일치",
+        oldVsImproved:
+          oldRemainingLeaves === newRemainingLeaves ? "✅ 일치" : "❌ 불일치",
+      },
+    };
+
+    console.log("🧪 대시보드 연차 계산 테스트 결과:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ 대시보드 연차 계산 테스트 오류:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 🧪 모든 승인된 연차 계산 테스트
+ */
+function testAllApprovedLeaves(empId) {
+  try {
+    console.log("🧪 모든 승인된 연차 계산 테스트 시작:", empId);
+
+    const allApproved = calculateAllApprovedLeaves(empId);
+    const earnedLeaves = calculateEarnedLeaves(
+      empId,
+      new Date().getFullYear(),
+      new Date().getMonth() + 1
+    );
+    const remainingLeaves = Math.max(0, earnedLeaves - allApproved);
+
+    const result = {
+      empId: empId,
+      earnedLeaves: earnedLeaves,
+      allApprovedLeaves: allApproved,
+      remainingLeaves: remainingLeaves,
+      calculation: `${earnedLeaves} - ${allApproved} = ${remainingLeaves}`,
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log("🧪 모든 승인된 연차 계산 테스트 결과:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ 모든 승인된 연차 계산 테스트 오류:", error);
+    return { error: error.message };
   }
 }
 
