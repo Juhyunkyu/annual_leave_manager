@@ -303,6 +303,92 @@
     let isAdminMode = false;
     
     /**
+     * 🔐 세션 관리 클래스
+     */
+    class SessionManager {
+      constructor() {
+        this.sessionKey = 'annual_leave_session';
+        this.sessionTimeout = 120 * 60 * 1000; // 2시간 (밀리초)
+      }
+      
+      /**
+       * 세션 저장
+       */
+      saveSession(sessionData) {
+        try {
+          const session = {
+            ...sessionData,
+            lastActivity: new Date().getTime()
+          };
+          localStorage.setItem(this.sessionKey, JSON.stringify(session));
+          console.log('✅ 세션 저장 완료:', session);
+          return true;
+        } catch (error) {
+          console.error('❌ 세션 저장 오류:', error);
+          return false;
+        }
+      }
+      
+      /**
+       * 세션 조회
+       */
+      getSession() {
+        try {
+          const sessionData = localStorage.getItem(this.sessionKey);
+          if (!sessionData) {
+            return null;
+          }
+          
+          const session = JSON.parse(sessionData);
+          
+          // 세션 타임아웃 확인
+          const now = new Date().getTime();
+          if (now - session.lastActivity > this.sessionTimeout) {
+            console.log('⚠️ 세션 만료됨');
+            this.clearSession();
+            return null;
+          }
+          
+          // 마지막 활동 시간 업데이트
+          session.lastActivity = now;
+          this.saveSession(session);
+          
+          return session;
+        } catch (error) {
+          console.error('❌ 세션 조회 오류:', error);
+          return null;
+        }
+      }
+      
+      /**
+       * 세션 삭제
+       */
+      clearSession() {
+        try {
+          localStorage.removeItem(this.sessionKey);
+          console.log('✅ 세션 삭제 완료');
+          return true;
+        } catch (error) {
+          console.error('❌ 세션 삭제 오류:', error);
+          return false;
+        }
+      }
+      
+      /**
+       * 세션 유효성 검증
+       */
+      isValidSession() {
+        const session = this.getSession();
+        return session !== null;
+      }
+    }
+    
+    // 세션 매니저 인스턴스 생성 (중복 선언 방지)
+    if (typeof sessionManager === 'undefined') {
+      var sessionManager = new SessionManager();
+    }
+    
+    /**
      * 🔐 관리자 모드 토글
      */
     function toggleAdminMode() {
@@ -376,14 +462,19 @@
         const result = await callServerFunction(loginFunction, email, password);
         
         if (result.success) {
+          // 클라이언트 사이드 세션 저장
+          if (result.sessionData) {
+            sessionManager.saveSession(result.sessionData);
+          }
+          
           showSuccess('로그인 성공! 메인 화면을 불러오는 중...');
           
           // 메인 화면 HTML을 서버에서 가져와서 교체
           try {
-            const mainResult = await callServerFunction('getMainAppAfterLogin');
+            const mainResult = await callServerFunction('getMainAppAfterLogin', result.sessionData);
             
             if (mainResult && mainResult.success && mainResult.html) {
-              // 현재 페이지 전체를 메인 앱 HTML로 교체
+              // 메인 앱 HTML로 페이지 교체 (원래 방식)
               document.open();
               document.write(mainResult.html);
               document.close();

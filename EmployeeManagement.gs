@@ -85,15 +85,12 @@ function getDepartmentMap() {
 /**
  * 📊 내 연차 정보 조회 (대시보드용) - 최적화된 버전
  */
-function getMyLeaveInfoFast(empId) {
+function getMyLeaveInfoFast(empId, sessionData = null) {
   try {
-    // 현재 세션 확인
-    const session = getValidSession();
-
-    // 관리자인 경우 별도 처리
-    if (session && session.userType === "admin") {
+    // 클라이언트에서 전달받은 세션 데이터 확인
+    if (sessionData && sessionData.userType === "admin") {
       // 관리자 정보 조회
-      const adminInfo = getAdminByAdminId(session.adminId);
+      const adminInfo = getAdminByAdminId(sessionData.adminId);
 
       // 관리자는 연차 정보가 없으므로 기본값 반환
       return {
@@ -574,7 +571,7 @@ function debugLeaveRequestsSheet() {
 /**
  * 📊 내 연차 신청 목록 조회 (안정적 버전)
  */
-function getMyRequests(empId, limit = null) {
+function getMyRequests(empId, limit = null, sessionData = null) {
   console.log("🚀🚀🚀 getMyRequests 함수 시작 🚀🚀🚀");
   console.log("📥 입력 파라미터:", { empId, limit, empIdType: typeof empId });
 
@@ -582,15 +579,14 @@ function getMyRequests(empId, limit = null) {
     // 1. 함수 진입 확인
     console.log("✅ Step 1: 함수 진입 성공");
 
-    // 2. 현재 세션 확인
+    // 2. 클라이언트에서 전달받은 세션 데이터 확인
     console.log("🔍 Step 2: 세션 확인 시작");
-    const session = getValidSession();
     console.log("📋 세션 상태:", {
-      hasSession: !!session,
-      sessionData: session,
+      hasSession: !!sessionData,
+      sessionData: sessionData,
     });
 
-    if (!session) {
+    if (!sessionData) {
       console.error("❌ Step 2 실패: 세션이 없습니다");
       console.log("🔙 반환값: 빈 배열 (세션 없음)");
       return [];
@@ -598,15 +594,15 @@ function getMyRequests(empId, limit = null) {
 
     console.log("✅ Step 2 성공: 세션 확인 완료");
     console.log("📋 세션 정보:", {
-      userType: session.userType,
-      empId: session.empId,
-      adminId: session.adminId,
-      name: session.name,
+      userType: sessionData.userType,
+      empId: sessionData.empId,
+      adminId: sessionData.adminId,
+      name: sessionData.name,
     });
 
     // 3. 관리자인 경우 처리
     console.log("🔍 Step 3: 사용자 타입 확인");
-    if (session.userType === "admin") {
+    if (sessionData.userType === "admin") {
       console.log("ℹ️ Step 3: 관리자 사용자 - 연차 신청 내역 없음");
       console.log("🔙 반환값: 빈 배열 (관리자)");
       return [];
@@ -614,9 +610,9 @@ function getMyRequests(empId, limit = null) {
 
     // 4. 직원 세션에서 empId 확인
     console.log("🔍 Step 4: 직원 ID 확인");
-    const actualEmpId = session.empId || empId;
+    const actualEmpId = sessionData.empId || empId;
     console.log("📋 직원 ID 결정:", {
-      sessionEmpId: session.empId,
+      sessionEmpId: sessionData.empId,
       parameterEmpId: empId,
       actualEmpId: actualEmpId,
     });

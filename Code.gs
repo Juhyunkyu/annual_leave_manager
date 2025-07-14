@@ -11,7 +11,7 @@ const SHEET_ID = "1ClLTOiDo-MHRDsS81AFRzeZ84x0e95Ce_p_lkPqFCiw"; // 구글시트
 const WEB_APP_URL = "YOUR_WEB_APP_URL_HERE"; // 웹앱 배포 후 URL을 여기에 입력하세요
 
 /**
- * 🚀 웹앱 진입점 - 로그인 상태에 따라 화면 분기
+ * 🚀 웹앱 진입점 - 로그인 페이지 표시 (클라이언트 사이드 세션)
  */
 function doGet(e) {
   try {
@@ -32,45 +32,14 @@ function doGet(e) {
     // 강제 로그아웃 파라미터 확인
     if (e.parameter.logout === "true") {
       console.log("🔐 강제 로그아웃 요청");
-
-      // 모든 세션 완전 삭제
-      clearAllSessions();
-      clearSession();
-
-      // 캐시도 정리
-      try {
-        const cache = CacheService.getUserCache();
-        cache.removeAll();
-      } catch (cacheError) {
-        console.warn("캐시 정리 중 오류 (무시됨):", cacheError);
-      }
-
       console.log("✅ 강제 로그아웃 완료 - 로그인 페이지 표시");
       return showLoginPage();
     }
 
-    // 세션 확인
-    const session = getValidSession();
-
-    if (session && (session.empId || session.adminId)) {
-      // 로그인된 사용자 - 메인 화면 표시
-      let userDetails = null;
-      if (session.userType === "admin") {
-        userDetails = getAdminByAdminId(session.adminId);
-      } else {
-        userDetails = getUserByEmpId(session.empId);
-      }
-
-      if (!userDetails) {
-        clearAllSessions();
-        return showLoginPage();
-      }
-
-      return showMainApp(session);
-    } else {
-      // 비로그인 사용자 - 로그인 페이지 표시
-      return showLoginPage();
-    }
+    // 클라이언트 사이드 세션 방식이므로 항상 로그인 페이지 표시
+    // 실제 인증은 클라이언트에서 처리
+    console.log("✅ 로그인 페이지 표시");
+    return showLoginPage();
   } catch (error) {
     console.error("❌ doGet 오류:", error);
     return showErrorPage("시스템 오류가 발생했습니다: " + error.message);
@@ -92,12 +61,12 @@ function showLoginPage() {
 }
 
 /**
- * 🏠 메인 앱 화면 HTML 생성
+ * 🏠 메인 앱 화면 HTML 생성 (클라이언트 사이드 세션)
  */
-function showMainApp(session) {
+function showMainApp(sessionData) {
   try {
-    // 세션 유효성 재확인 (관리자/직원 구분)
-    if (!session || (!session.empId && !session.adminId)) {
+    // 클라이언트에서 전달받은 세션 데이터 검증
+    if (!sessionData || (!sessionData.empId && !sessionData.adminId)) {
       return showErrorPage(
         "세션 정보가 유효하지 않습니다. 다시 로그인해주세요."
       );
@@ -106,15 +75,15 @@ function showMainApp(session) {
     let userDetails = null;
 
     // 세션 타입에 따라 사용자 정보 조회
-    if (session.userType === "admin") {
-      userDetails = getAdminByAdminId(session.adminId);
+    if (sessionData.userType === "admin") {
+      userDetails = getAdminByAdminId(sessionData.adminId);
       if (!userDetails) {
         return showErrorPage(
           "관리자 정보를 찾을 수 없습니다. 시스템 관리자에게 문의하세요."
         );
       }
     } else {
-      userDetails = getUserByEmpId(session.empId);
+      userDetails = getUserByEmpId(sessionData.empId);
       if (!userDetails) {
         return showErrorPage(
           "직원 정보를 찾을 수 없습니다. 관리자에게 문의하세요."
@@ -125,7 +94,7 @@ function showMainApp(session) {
     const template = HtmlService.createTemplateFromFile("main");
 
     // 템플릿에 사용자 정보 전달 (관리자/직원 구분)
-    if (session.userType === "admin") {
+    if (sessionData.userType === "admin") {
       template.user = {
         empId: userDetails.adminId, // 관리자는 adminId를 empId 필드에
         name: userDetails.name,
@@ -159,7 +128,7 @@ function showMainApp(session) {
         department: deptName,
         deptId: userDetails.deptId,
         deptName: deptName,
-        isAdmin: userDetails.position === "관리자" || session.isAdmin,
+        isAdmin: userDetails.position === "관리자" || sessionData.isAdmin,
         userType: "employee",
       };
     }
@@ -204,11 +173,11 @@ function include(filename) {
 }
 
 // =====================================
-// 🔐 인증 및 세션 관리 함수들
+// 🔐 인증 및 세션 관리 함수들 (클라이언트 사이드 기반)
 // =====================================
 
 /**
- * 🔑 일반 직원 로그인 처리 함수
+ * 🔑 일반 직원 로그인 처리 함수 (클라이언트 사이드 세션)
  */
 function doLogin(email, password) {
   try {
@@ -237,15 +206,24 @@ function doLogin(email, password) {
       };
     }
 
-    // 직원 세션 생성
-    const sessionId = createEmployeeSession(user);
+    // 클라이언트 사이드 세션 데이터 생성
+    const sessionData = {
+      userType: "employee",
+      empId: user.empId,
+      name: user.name,
+      email: user.email,
+      position: user.position,
+      isAdmin: false,
+      loginTime: new Date().getTime(),
+      lastActivity: new Date().getTime(),
+    };
 
     // 최초 로그인 확인 (비밀번호가 임시인지)
     const isFirstLogin = isTemporaryPassword(user.passwordHash);
 
     return {
       success: true,
-      sessionId: sessionId,
+      sessionData: sessionData,
       isFirstLogin: isFirstLogin,
       userType: "employee",
       redirectToMain: true,
@@ -266,7 +244,7 @@ function doLogin(email, password) {
 }
 
 /**
- * 🔐 관리자 로그인 처리 함수
+ * 🔐 관리자 로그인 처리 함수 (클라이언트 사이드 세션)
  */
 function doAdminLogin(email, password) {
   try {
@@ -295,8 +273,18 @@ function doAdminLogin(email, password) {
       };
     }
 
-    // 관리자 세션 생성
-    const sessionId = createAdminSession(admin);
+    // 클라이언트 사이드 세션 데이터 생성
+    const sessionData = {
+      userType: "admin",
+      adminId: admin.adminId,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+      isAdmin: true,
+      isSuperAdmin: admin.role === "SUPER",
+      loginTime: new Date().getTime(),
+      lastActivity: new Date().getTime(),
+    };
 
     // 로그인 기록 업데이트
     updateAdminLoginRecord(admin.adminId);
@@ -306,7 +294,7 @@ function doAdminLogin(email, password) {
 
     return {
       success: true,
-      sessionId: sessionId,
+      sessionData: sessionData,
       isFirstLogin: isFirstLogin,
       userType: "admin",
       redirectToMain: true,
@@ -329,40 +317,17 @@ function doAdminLogin(email, password) {
 }
 
 /**
- * 🔓 로그아웃 처리 함수 (완전한 세션 정리)
+ * 🔓 로그아웃 처리 함수 (클라이언트 사이드 세션)
  */
 function doLogout() {
   try {
     console.log("🔓 로그아웃 처리 시작");
 
-    // 1. 현재 세션 정보 확인
-    const session = getValidSession();
-    if (session) {
-      console.log("현재 세션 정보:", {
-        userType: session.userType,
-        empId: session.empId,
-        adminId: session.adminId,
-        name: session.name,
-      });
-    }
-
-    // 2. 모든 세션 삭제
-    clearSession();
-    clearAllSessions();
-
-    // 3. 세션 삭제 확인
-    const remainingSession = getValidSession();
-    if (remainingSession) {
-      console.warn("⚠️ 세션 삭제 후에도 세션이 남아있음:", remainingSession);
-    } else {
-      console.log("✅ 세션 완전 삭제 확인");
-    }
-
     return {
       success: true,
       message: "로그아웃이 완료되었습니다.",
       timestamp: new Date().toISOString(),
-      sessionCleared: !remainingSession,
+      sessionCleared: true,
     };
   } catch (error) {
     console.error("❌ 로그아웃 오류:", error);
@@ -380,13 +345,6 @@ function doLogout() {
  */
 function getLoginPageAfterLogout() {
   try {
-    // 세션이 정말 삭제되었는지 확인
-    const session = getValidSession();
-    if (session) {
-      clearSession();
-      clearAllSessions();
-    }
-
     // 로그인 페이지 HTML 생성
     const loginPageHtml = showLoginPage();
     const htmlContent = loginPageHtml.getContent();
@@ -408,33 +366,32 @@ function getLoginPageAfterLogout() {
 }
 
 /**
- * 🏠 로그인 후 메인 화면 HTML 반환
+ * 🏠 로그인 후 메인 화면 HTML 반환 (클라이언트 사이드 세션)
  */
-function getMainAppAfterLogin() {
+function getMainAppAfterLogin(sessionData) {
   try {
-    // 현재 세션 확인
-    const session = getValidSession();
-    if (!session) {
-      return { success: false, error: "세션 없음" };
+    // 클라이언트에서 전달받은 세션 데이터 검증
+    if (!sessionData || (!sessionData.empId && !sessionData.adminId)) {
+      return { success: false, error: "세션 데이터 없음" };
     }
 
     let userDetails = null;
 
     // 세션 타입에 따라 사용자 정보 조회
-    if (session.userType === "admin") {
-      userDetails = getAdminByAdminId(session.adminId);
+    if (sessionData.userType === "admin") {
+      userDetails = getAdminByAdminId(sessionData.adminId);
       if (!userDetails) {
         return { success: false, error: "관리자 정보 없음" };
       }
     } else {
-      userDetails = getUserByEmpId(session.empId);
+      userDetails = getUserByEmpId(sessionData.empId);
       if (!userDetails) {
         return { success: false, error: "직원 정보 없음" };
       }
     }
 
     // 메인 앱 HTML 생성
-    const mainAppHtml = showMainApp(session);
+    const mainAppHtml = showMainApp(sessionData);
     const htmlContent = mainAppHtml.getContent();
 
     return {
@@ -443,10 +400,10 @@ function getMainAppAfterLogin() {
       user: {
         name: userDetails.name,
         id:
-          session.userType === "admin"
+          sessionData.userType === "admin"
             ? userDetails.adminId
             : userDetails.empId,
-        userType: session.userType,
+        userType: sessionData.userType,
       },
     };
   } catch (error) {
@@ -456,7 +413,7 @@ function getMainAppAfterLogin() {
 }
 
 /**
- * 🎫 직원 세션 생성
+ * 🎫 직원 세션 생성 (클라이언트 사이드용)
  */
 function createEmployeeSession(user) {
   const sessionId = generateSessionId();
@@ -471,24 +428,14 @@ function createEmployeeSession(user) {
     lastActivity: new Date().getTime(),
   };
 
-  // PropertiesService에 세션 저장 (2시간 = 7200초)
-  const userProperties = PropertiesService.getUserProperties();
-  userProperties.setProperty(
-    "employee_session_" + sessionId,
-    JSON.stringify(sessionData)
-  );
-  userProperties.setProperty("current_session", sessionId);
-  userProperties.setProperty("session_type", "employee");
-
-  // CacheService에도 저장 (빠른 접근용 - 1시간)
-  const cache = CacheService.getUserCache();
-  cache.put("employee_session_" + sessionId, JSON.stringify(sessionData), 3600);
-
-  return sessionId;
+  return {
+    sessionId: sessionId,
+    sessionData: sessionData,
+  };
 }
 
 /**
- * 🔐 관리자 세션 생성
+ * 🔐 관리자 세션 생성 (클라이언트 사이드용)
  */
 function createAdminSession(admin) {
   const sessionId = generateSessionId();
@@ -504,68 +451,34 @@ function createAdminSession(admin) {
     lastActivity: new Date().getTime(),
   };
 
-  // PropertiesService에 세션 저장 (2시간 = 7200초)
-  const userProperties = PropertiesService.getUserProperties();
-  userProperties.setProperty(
-    "admin_session_" + sessionId,
-    JSON.stringify(sessionData)
-  );
-  userProperties.setProperty("current_session", sessionId);
-  userProperties.setProperty("session_type", "admin");
-
-  // CacheService에도 저장 (빠른 접근용 - 1시간)
-  const cache = CacheService.getUserCache();
-  cache.put("admin_session_" + sessionId, JSON.stringify(sessionData), 3600);
-
-  return sessionId;
+  return {
+    sessionId: sessionId,
+    sessionData: sessionData,
+  };
 }
 
 /**
- * ✅ 유효한 세션 가져오기 (직원/관리자 구분)
+ * ✅ 유효한 세션 가져오기 (클라이언트 사이드 세션 검증)
  */
-function getValidSession() {
+function getValidSession(sessionData) {
   try {
-    const userProperties = PropertiesService.getUserProperties();
-    const currentSessionId = userProperties.getProperty("current_session");
-    const sessionType = userProperties.getProperty("session_type");
-
-    if (!currentSessionId || !sessionType) {
-      return null;
-    }
-
-    const sessionKey = sessionType + "_session_" + currentSessionId;
-
-    // 먼저 캐시에서 확인
-    const cache = CacheService.getUserCache();
-    let sessionData = cache.get(sessionKey);
-
-    if (!sessionData) {
-      // 캐시에 없으면 PropertiesService에서 확인
-      sessionData = userProperties.getProperty(sessionKey);
-    }
-
     if (!sessionData) {
       return null;
     }
-
-    const session = JSON.parse(sessionData);
 
     // 세션 타임아웃 확인 (2시간 = 7200000ms)
     const now = new Date().getTime();
     const sessionTimeout = getSystemSetting("세션타임아웃", 120) * 60 * 1000; // 분을 밀리초로 변환
 
-    if (now - session.lastActivity > sessionTimeout) {
+    if (now - sessionData.lastActivity > sessionTimeout) {
       // 세션 만료
-      clearSession();
       return null;
     }
 
     // 마지막 활동 시간 업데이트
-    session.lastActivity = now;
-    userProperties.setProperty(sessionKey, JSON.stringify(session));
-    cache.put(sessionKey, JSON.stringify(session), 3600);
+    sessionData.lastActivity = now;
 
-    return session;
+    return sessionData;
   } catch (error) {
     console.error("세션 확인 오류:", error);
     return null;
@@ -573,28 +486,12 @@ function getValidSession() {
 }
 
 /**
- * 🗑️ 세션 삭제
+ * 🗑️ 세션 삭제 (클라이언트 사이드)
  */
 function clearSession() {
-  try {
-    const userProperties = PropertiesService.getUserProperties();
-    const currentSessionId = userProperties.getProperty("current_session");
-    const sessionType = userProperties.getProperty("session_type");
-
-    if (currentSessionId && sessionType) {
-      // 올바른 세션 키로 삭제
-      const sessionKey = sessionType + "_session_" + currentSessionId;
-
-      userProperties.deleteProperty(sessionKey);
-      userProperties.deleteProperty("current_session");
-      userProperties.deleteProperty("session_type");
-
-      const cache = CacheService.getUserCache();
-      cache.remove(sessionKey);
-    }
-  } catch (error) {
-    console.error("세션 삭제 오류:", error);
-  }
+  // 클라이언트 사이드에서는 세션 데이터를 클라이언트에서 관리하므로
+  // 서버에서는 별도 처리가 필요 없음
+  return true;
 }
 
 /**
@@ -605,60 +502,12 @@ function generateSessionId() {
 }
 
 /**
- * 📊 관리자 로그인 기록 업데이트
- */
-function updateAdminLoginRecord(adminId) {
-  try {
-    const sheet = getSheet("Admins");
-    const data = sheet.getDataRange().getValues();
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === adminId) {
-        const now = new Date();
-        const currentLoginCount = (data[i][8] || 0) + 1;
-
-        // H열: LastLogin, I열: LoginCount 업데이트
-        sheet.getRange(i + 1, 8).setValue(now);
-        sheet.getRange(i + 1, 9).setValue(currentLoginCount);
-        break;
-      }
-    }
-  } catch (error) {
-    console.error("관리자 로그인 기록 업데이트 오류:", error);
-  }
-}
-
-/**
  * 🗑️ 모든 세션 삭제 (로그아웃 시 사용)
  */
 function clearAllSessions() {
-  try {
-    // UserProperties에서 세션 정보 삭제
-    const userProperties = PropertiesService.getUserProperties();
-    userProperties.deleteProperty("current_session");
-    userProperties.deleteProperty("session_type");
-
-    // Cache에서 세션 정보 삭제
-    const cache = CacheService.getUserCache();
-
-    // 가능한 캐시 키들을 삭제
-    const possibleKeys = [
-      "current_session",
-      "session_" + Session.getActiveUser().getEmail(),
-      "user_session",
-      "login_session",
-    ];
-
-    possibleKeys.forEach((key) => {
-      try {
-        cache.remove(key);
-      } catch (e) {
-        // 개별 키 삭제 실패는 무시
-      }
-    });
-  } catch (error) {
-    console.error("세션 삭제 오류:", error);
-  }
+  // 클라이언트 사이드에서는 세션 데이터를 클라이언트에서 관리하므로
+  // 서버에서는 별도 처리가 필요 없음
+  return true;
 }
 
 // =====================================
