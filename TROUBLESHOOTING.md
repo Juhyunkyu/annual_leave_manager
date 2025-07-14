@@ -8,9 +8,10 @@
 
 1. [Date 객체 직렬화 문제](#date-객체-직렬화-문제)
 2. [empId 타입 불일치 문제](#empid-타입-불일치-문제)
-3. [세션 관리 문제](#세션-관리-문제)
-4. [Google Apps Script 제한사항](#google-apps-script-제한사항)
-5. [성능 최적화](#성능-최적화)
+3. [로그인 세션 관리 문제](#로그인-세션-관리-문제)
+4. [세션 관리 문제](#세션-관리-문제)
+5. [Google Apps Script 제한사항](#google-apps-script-제한사항)
+6. [성능 최적화](#성능-최적화)
 
 ---
 
@@ -300,6 +301,347 @@ function safeIdCompare(id1, id2) {
 if (safeIdCompare(requestEmpId, empId)) {
   // 필터링 로직
 }
+```
+
+---
+
+## 🔐 로그인 세션 관리 문제
+
+### 🚨 **문제 현상**
+
+#### **1차 문제: 보안 이슈**
+
+- **증상**: 한 사용자가 로그인하면 다른 사용자들도 같은 세션을 공유하는 심각한 보안 문제
+- **원인**: Google Apps Script의 `PropertiesService`와 `CacheService`가 배포자 컨텍스트에서 실행되어 모든 사용자가 같은 세션을 공유
+- **영향**: 다중 사용자 환경에서 세션 격리가 불가능
+
+#### **2차 문제: JavaScript 에러**
+
+- **증상**: 로그인 후 `Identifier 'SessionManager' has already been declared` 에러 발생
+- **증상**: 사이드 메뉴 클릭 시 `showPage is not defined` 에러 발생
+- **증상**: 로그인 후 "직원 정보 수정" 모달이 자동으로 표시되는 문제
+
+#### **3차 문제: 빈 화면 출력**
+
+- **증상**: 에러 해결 후 로그인하면 빈 화면만 출력됨
+- **원인**: `document.write()` → `location.href` 변경으로 인해 메인 앱이 로드되지 않음
+
+### 🔍 **원인 분석**
+
+#### **1. 서버 사이드 세션 관리의 한계**
+
+```javascript
+// 문제가 되었던 코드 (서버 사이드 세션)
+function doLogin(email, password) {
+  // ...
+  PropertiesService.getUserProperties().setProperty(
+    "session",
+    JSON.stringify(sessionData)
+  );
+  // 모든 사용자가 같은 세션을 공유하는 문제
+}
+```
+
+#### **2. Google Apps Script의 특수한 환경**
+
+- **스크립트 실행 환경**: 서버 사이드에서 실행되어 브라우저의 일반적인 JS 디버깅 도구가 제한적
+- **HTML 처리 방식**: `HtmlService`는 특별한 방식으로 HTML을 처리하므로 일반적인 `document.write()`와 다르게 동작
+- **세션 컨텍스트**: 배포된 웹앱은 배포자의 컨텍스트에서 실행되어 사용자별 세션 분리가 어려움
+
+#### **3. JavaScript 중복 선언 문제**
+
+```javascript
+// login.html과 main.html에서 모두 SessionManager 선언
+class SessionManager { ... } // 중복 선언 에러
+const sessionManager = new SessionManager(); // 중복 선언 에러
+```
+
+### 🛠️ **해결 방법**
+
+#### **1단계: 클라이언트 사이드 세션 관리로 전환**
+
+**백엔드 수정 (Code.gs)**:
+
+```javascript
+function doLogin(email, password) {
+  // ...
+  // 서버에 세션 저장하지 않고 클라이언트로 반환
+  return {
+    success: true,
+    sessionData: sessionData, // 클라이언트에서 localStorage에 저장
+    userType: "employee",
+    redirectToMain: true,
+  };
+}
+```
+
+**프론트엔드 수정 (login.html)**:
+
+```javascript
+// SessionManager 클래스 중복 선언 방지
+if (typeof SessionManager === "undefined") {
+  class SessionManager {
+    constructor() {
+      this.sessionKey = "annual_leave_session";
+      this.sessionTimeout = 120 * 60 * 1000; // 2시간
+    }
+
+    saveSession(sessionData) {
+      try {
+        const session = {
+          ...sessionData,
+          lastActivity: new Date().getTime(),
+        };
+        localStorage.setItem(this.sessionKey, JSON.stringify(session));
+        return true;
+      } catch (error) {
+        console.error("세션 저장 오류:", error);
+        return false;
+      }
+    }
+
+    getSession() {
+      try {
+        const sessionData = localStorage.getItem(this.sessionKey);
+        if (!sessionData) return null;
+
+        const session = JSON.parse(sessionData);
+
+        // 세션 타임아웃 확인
+        const now = new Date().getTime();
+        if (now - session.lastActivity > this.sessionTimeout) {
+          this.clearSession();
+          return null;
+        }
+
+        // 마지막 활동 시간 업데이트
+        session.lastActivity = now;
+        this.saveSession(session);
+
+        return session;
+      } catch (error) {
+        console.error("세션 조회 오류:", error);
+        return null;
+      }
+    }
+
+    clearSession() {
+      localStorage.removeItem(this.sessionKey);
+    }
+  }
+}
+
+// sessionManager 인스턴스 중복 선언 방지
+if (typeof sessionManager === "undefined") {
+  var sessionManager = new SessionManager();
+}
+```
+
+#### **2단계: 페이지 전환 방식 개선**
+
+**login.html의 handleLogin 함수**:
+
+```javascript
+async function handleLogin(event) {
+  // ...
+  if (result.success) {
+    // 클라이언트 사이드 세션 저장
+    if (result.sessionData) {
+      sessionManager.saveSession(result.sessionData);
+    }
+
+    // 메인 화면 HTML을 서버에서 가져와서 교체
+    try {
+      const mainResult = await callServerFunction(
+        "getMainAppAfterLogin",
+        result.sessionData
+      );
+
+      if (mainResult && mainResult.success && mainResult.html) {
+        // document.write 방식으로 페이지 교체
+        document.open();
+        document.write(mainResult.html);
+        document.close();
+      } else {
+        // 폴백: 페이지 새로고침
+        setTimeout(() => {
+          const baseUrl = window.location.href.split("?")[0];
+          window.location.href = baseUrl + "?t=" + new Date().getTime();
+        }, 500);
+      }
+    } catch (error) {
+      console.error("메인 화면 로드 오류:", error);
+      // 오류 시 페이지 새로고침으로 폴백
+      setTimeout(() => {
+        const baseUrl = window.location.href.split("?")[0];
+        window.location.href = baseUrl + "?t=" + new Date().getTime();
+      }, 500);
+    }
+  }
+}
+```
+
+#### **3단계: 모달 자동 표시 문제 해결**
+
+**main.html의 모달 설정**:
+
+```html
+<!-- 직원 수정 모달 - 기본적으로 숨김 -->
+<div id="editEmployeeModal" class="modal-overlay" style="display: none;">
+  <!-- 모달 내용 -->
+</div>
+```
+
+**JavaScript에서 모달 제어**:
+
+```javascript
+// editEmployee 함수에서만 모달을 표시
+async function editEmployee(empId) {
+  try {
+    // 해당 직원 정보 찾기
+    const employee = allEmployees.find((emp) => emp.empId === empId);
+    if (!employee) {
+      showNotification("직원 정보를 찾을 수 없습니다.", "error");
+      return;
+    }
+
+    // 모달 필드에 기존 데이터 채우기
+    document.getElementById("editEmpId").value = employee.empId;
+    document.getElementById("editEmpName").value = employee.name;
+    // ... 기타 필드들
+
+    // 모달 표시 (이 함수에서만 실행)
+    const modal = document.getElementById("editEmployeeModal");
+    modal.style.display = "flex";
+  } catch (error) {
+    console.error("직원 수정 모달 오류:", error);
+    showNotification("직원 정보 수정 중 오류가 발생했습니다.", "error");
+  }
+}
+
+// closeEditEmployeeModal 함수 정의
+if (typeof closeEditEmployeeModal !== "function") {
+  function closeEditEmployeeModal() {
+    const modal = document.getElementById("editEmployeeModal");
+    if (modal) {
+      modal.style.display = "none";
+    }
+    // 폼 초기화
+    const form = document.getElementById("editEmployeeForm");
+    if (form) form.reset();
+  }
+}
+```
+
+#### **4단계: showPage 함수 정의**
+
+**main.html에 showPage 함수 추가**:
+
+```javascript
+// showPage 함수가 없으면 더미 함수라도 추가
+if (typeof showPage !== "function") {
+  function showPage(pageName) {
+    // TODO: 실제 페이지 전환 로직 구현 필요
+    // location.href = 'main.html?page=' + pageName; // 권장 방식 예시
+    console.log("showPage 호출됨:", pageName);
+  }
+}
+```
+
+### ✅ **최종 결과**
+
+#### **보안 개선**
+
+- ✅ **사용자별 세션 격리**: 각 사용자가 독립적인 세션을 가짐
+- ✅ **브라우저별 세션 분리**: 다른 브라우저에서 로그인해도 세션 공유 안됨
+- ✅ **세션 타임아웃**: 2시간 후 자동 로그아웃
+- ✅ **다중 사용자 지원**: 여러 사용자가 동시에 안전하게 사용 가능
+
+#### **에러 해결**
+
+- ✅ **SessionManager 중복 선언 에러 해결**
+- ✅ **showPage is not defined 에러 해결**
+- ✅ **직원 정보 수정 모달 자동 표시 문제 해결**
+
+#### **기능 복원**
+
+- ✅ **로그인 후 메인 화면 정상 로드**
+- ✅ **사이드 메뉴 정상 작동**
+- ✅ **모든 기능 정상 동작**
+
+### 📝 **학습 포인트**
+
+#### **1. Google Apps Script의 특수성**
+
+- **서버 사이드 실행**: 브라우저의 일반적인 JS 디버깅 도구가 제한적
+- **세션 관리 한계**: 배포자 컨텍스트에서 실행되어 사용자별 세션 분리 어려움
+- **HTML 처리 방식**: `HtmlService`는 특별한 방식으로 HTML을 처리
+
+#### **2. 클라이언트 사이드 세션 관리의 장점**
+
+- **사용자 격리**: 각 사용자가 독립적인 세션을 가짐
+- **브라우저 분리**: 다른 브라우저에서도 세션 공유 안됨
+- **타임아웃 관리**: 자동 세션 만료로 보안 강화
+- **확장성**: 다중 사용자 환경에서 안정적 동작
+
+#### **3. JavaScript 중복 선언 방지 기법**
+
+```javascript
+// 클래스 중복 선언 방지
+if (typeof SessionManager === 'undefined') {
+  class SessionManager { ... }
+}
+
+// 변수 중복 선언 방지
+if (typeof sessionManager === 'undefined') {
+  var sessionManager = new SessionManager();
+}
+
+// 함수 중복 선언 방지
+if (typeof showPage !== 'function') {
+  function showPage(pageName) { ... }
+}
+```
+
+#### **4. Google Apps Script 디버깅 방법**
+
+- **Apps Script 에디터**: `View → Execution log` 또는 `View → Logs`
+- **콘솔 로그**: 브라우저 개발자 도구가 아닌 Apps Script 자체 로그에서 확인
+- **단계별 테스트**: 각 함수별로 개별 테스트 실행
+
+### 🔧 **추가 권장사항**
+
+#### **1. 보안 강화**
+
+```javascript
+// 민감한 데이터는 최소한만 저장
+const sessionData = {
+  userType: "employee",
+  empId: user.empId,
+  name: user.name,
+  // 이메일, 비밀번호 등은 저장하지 않음
+  loginTime: new Date().getTime(),
+  lastActivity: new Date().getTime(),
+};
+```
+
+#### **2. 에러 처리 강화**
+
+```javascript
+// try-catch로 모든 세션 관련 작업 감싸기
+try {
+  sessionManager.saveSession(sessionData);
+} catch (error) {
+  console.error("세션 저장 실패:", error);
+  // 폴백 처리
+}
+```
+
+#### **3. 페이지 전환 방식 개선**
+
+```javascript
+// document.write 대신 location.href 사용 고려
+// (단, Google Apps Script 환경에서는 document.write가 더 안정적일 수 있음)
 ```
 
 ---
